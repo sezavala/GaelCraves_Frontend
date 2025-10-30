@@ -1,98 +1,127 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
-
-import { HelloWave } from '@/components/hello-wave';
-import ParallaxScrollView from '@/components/parallax-scroll-view';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { Link } from 'expo-router';
+import * as React from 'react';
+import { SafeAreaView, ScrollView, View, Text, Pressable, Image, StyleSheet, useWindowDimensions } from 'react-native';
 
 export default function HomeScreen() {
-  return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12',
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <Link href="/modal">
-          <Link.Trigger>
-            <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-          </Link.Trigger>
-          <Link.Preview />
-          <Link.Menu>
-            <Link.MenuAction title="Action" icon="cube" onPress={() => alert('Action pressed')} />
-            <Link.MenuAction
-              title="Share"
-              icon="square.and.arrow.up"
-              onPress={() => alert('Share pressed')}
-            />
-            <Link.Menu title="More" icon="ellipsis">
-              <Link.MenuAction
-                title="Delete"
-                icon="trash"
-                destructive
-                onPress={() => alert('Delete pressed')}
-              />
-            </Link.Menu>
-          </Link.Menu>
-        </Link>
+  const { width } = useWindowDimensions();
+  const isWide = width >= 900; // simple responsive tweak for web
 
-        <ThemedText>
-          {`Tap the Explore tab to learn more about what's included in this starter app.`}
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          {`When you're ready, run `}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
+  return (
+    <SafeAreaView style={styles.safe}>
+      <ScrollView contentContainerStyle={styles.container}>
+        {/* NAVBAR */}
+        <View style={styles.nav}>
+          <View style={styles.brandRow}>
+            <View style={styles.logoFlame} />
+            <Text style={styles.brand}>GAEL'S CRAVES</Text>
+          </View>
+          <View style={styles.navRight}>
+            <Text style={styles.navLink}>Home</Text>
+            <Text style={styles.navLink}>About</Text>
+            <Text style={styles.navLink}>Menu</Text>
+            <Text style={styles.navLink}>Contact us</Text>
+            <Pressable style={styles.viewMenuBtn}><Text style={styles.viewMenuText}>LOGIN</Text></Pressable>
+          </View>
+        </View>
+
+        {/* HERO */}
+        <View style={[styles.heroCard, { flexDirection: isWide ? 'row' : 'column' }]}>
+          {/* Left copy */}
+          <View style={[styles.heroLeft, { flex: isWide ? 1 : undefined }]}>
+            <Text style={styles.eyebrow}>Crafted with passion</Text>
+            <Text style={styles.h1}>
+              Where <Text style={styles.accent}>Cravings</Text>{''}
+              Meet Their Perfect{''}
+              Match
+            </Text>
+            <Text style={styles.sub}>
+              Discover bold flavors and unforgettable dishes in a place where every craving is satisfied with the perfect bite, crafted just for you.
+            </Text>
+            <View style={styles.ctaRow}>
+              <Pressable style={styles.primaryOutline}><Text style={styles.primaryOutlineText}>PLACE YOUR ORDER</Text></Pressable>
+            </View>
+          </View>
+
+          {/* Right imagery */}
+          <View style={[styles.heroRight, { flex: isWide ? 1 : undefined }]}>
+            <View style={styles.dishStage}>
+              {/* Replace these URIs with your own assets later */}
+              <Image
+                //source={{ uri: 'link goes here' }}
+                style={[styles.dish, styles.dishTop]}
+                resizeMode="cover"
+              />
+              <Image
+                //source={{ uri: 'link goes here' }}
+                style={[styles.dish, styles.dishBottomLeft]}
+                resizeMode="cover"
+              />
+              <Image
+                //source={{ uri: 'link goes here' }}
+                style={[styles.dish, styles.dishBottomRight]}
+                resizeMode="cover"
+              />
+            </View>
+          </View>
+        </View>
+
+        {/* FOOTER (simple) */}
+        <View style={styles.footer}>
+          <Text style={styles.footerBrand}>GAEL'S CRAVES</Text>
+          <Text style={styles.copy}>© {new Date().getFullYear()} Gael's Craves — All rights reserved.</Text>
+        </View>
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 
+const BG = '#0B1313';
+const PANEL = '#0E1717';
+const PEACH = '#E7C4A3';
+const TEXT = 'rgba(255,255,255,0.92)';
+const MUTED = 'rgba(255,255,255,0.72)';
+
 const styles = StyleSheet.create({
-  titleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
+  safe: { flex: 1, backgroundColor: BG },
+  container: { paddingHorizontal: 20, paddingBottom: 40 },
+
+  // NAV
+  nav: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 16 },
+  brandRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  logoFlame: { width: 18, height: 24, borderRadius: 4, backgroundColor: PEACH, transform: [{ rotate: '8deg' }], opacity: 0.9 },
+  brand: { color: TEXT, fontSize: 16, fontWeight: '800', letterSpacing: 1 },
+  navRight: { flexDirection: 'row', alignItems: 'center', gap: 18 },
+  navLink: { color: TEXT, opacity: 0.85 },
+  viewMenuBtn: { backgroundColor: PEACH, paddingVertical: 10, paddingHorizontal: 14, borderRadius: 8 },
+  viewMenuText: { color: '#1b1b1b', fontWeight: '800' },
+
+  // HERO
+  heroCard: { marginTop: 8, backgroundColor: PANEL, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)', padding: 24, borderRadius: 18 },
+  heroLeft: { paddingRight: 16 },
+  eyebrow: { color: PEACH, fontWeight: '700', letterSpacing: 1, marginBottom: 10 },
+  h1: {
+    color: TEXT,
+    fontSize: 56,
+    lineHeight: 62,
+    fontWeight: '800',
+    marginBottom: 14,
+    fontFamily: 'Georgia, Times New Roman, serif', // web serif fallback
   },
-  stepContainer: {
-    gap: 8,
-    marginBottom: 8,
-  },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
-  },
+  accent: { color: PEACH },
+  sub: { color: MUTED, fontSize: 16, lineHeight: 22, marginTop: 6, maxWidth: 680 },
+  ctaRow: { flexDirection: 'row', gap: 12, marginTop: 18 },
+  primaryOutline: { borderWidth: 1, borderColor: PEACH, paddingVertical: 12, paddingHorizontal: 16, borderRadius: 10 },
+  primaryOutlineText: { color: PEACH, fontWeight: '800' },
+
+  // Right imagery
+  heroRight: { marginTop: 24 },
+  dishStage: { height: 360, borderRadius: 16, overflow: 'visible', position: 'relative', justifyContent: 'center', alignItems: 'center' },
+  dish: { width: 220, height: 220, borderRadius: 110, borderWidth: 6, borderColor: '#1f2a2a', shadowColor: '#000', shadowOpacity: 0.35, shadowOffset: { width: 0, height: 8 }, shadowRadius: 16 },
+  dishTop: { position: 'absolute', top: 0, right: 40 },
+  dishBottomLeft: { position: 'absolute', bottom: 0, left: 20 },
+  dishBottomRight: { position: 'absolute', bottom: -10, right: -10 },
+
+  // FOOTER
+  footer: { marginTop: 36, paddingTop: 18, borderTopColor: 'rgba(255,255,255,0.08)', borderTopWidth: 1, gap: 6 },
+  footerBrand: { color: TEXT, fontWeight: '800' },
+  copy: { color: 'rgba(255,255,255,0.6)', fontSize: 12 },
 });
