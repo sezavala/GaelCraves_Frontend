@@ -1,3 +1,4 @@
+import GoogleSignIn from '@/components/GoogleSignIn';
 import React from "react";
 import {
   StyleSheet,
@@ -283,10 +284,12 @@ export default function LoginScreen() {
                    ========================================== */}
               <View style={styles.socialRow}>
                 {/* GOOGLE BUTTON */}
-                <Pressable style={styles.socialBtn} onPress={handleGoogleLogin}>
-                  <Text style={styles.socialIcon}>G</Text>
-                  <Text style={styles.socialText}>Google</Text>
-                </Pressable>
+                  {/* GOOGLE BUTTON (component uses expo-auth-session hook) */}
+                  <GoogleSignIn
+                    style={styles.socialBtn}
+                    iconStyle={styles.socialIcon}
+                    textStyle={styles.socialText}
+                  />
 
                 {/* INSTAGRAM BUTTON */}
                 <Pressable
