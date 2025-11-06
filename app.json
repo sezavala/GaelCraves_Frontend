@@ -25,6 +25,10 @@
       "output": "static",
       "favicon": "./assets/images/favicon.png"
     },
+    "extra": {
+      "GOOGLE_CLIENT_ID": "624682753251-1777mu4gr62ajtklkeod1j7hugvafjdb.apps.googleusercontent.com",
+      "API_BASE": "http://localhost:8080"
+    },
     "plugins": [
       "expo-router",
       [
