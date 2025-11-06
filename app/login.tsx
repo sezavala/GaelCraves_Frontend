@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React from "react";
 import {
   StyleSheet,
   View,
@@ -7,9 +7,10 @@ import {
   Pressable,
   ScrollView,
   SafeAreaView,
-  Alert,
+  ActivityIndicator,
 } from "react-native";
 import { Link, Stack } from "expo-router";
+import { useAuth } from "@/hooks/useAuth";
 
 // Color scheme matching your home page
 const BG = "#0B1313";
@@ -19,79 +20,33 @@ const TEXT = "rgba(255,255,255,0.92)";
 const MUTED = "rgba(255,255,255,0.72)";
 const INPUT_BG = "#1a2424";
 const BORDER = "rgba(255,255,255,0.08)";
+const ERROR_COLOR = "#ff4444";
 
 export default function LoginScreen() {
-  // Toggle between Sign In and Sign Up modes
-  const [isSignUp, setIsSignUp] = useState(false);
-  // Toggle admin login mode
-  const [isAdmin, setIsAdmin] = useState(false);
-
-  // Form field values
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [securityQuestion, setSecurityQuestion] = useState("");
-  const [securityAnswer, setSecurityAnswer] = useState("");
-
-  // Async Function for form submission
-  const handleSubmit = async () => {
-    // If passwords don't match during sign up (ERROR)
-    if (isSignUp && password !== confirmPassword) {
-      Alert.alert("Error", "Passwords do not match");
-      return;
-    }
-
-    // If signing up
-    if (isSignUp) {
-      // Sign up logic
-      try {
-        // POST user information to our API (NOT COMPLETE) Link
-        // TODO: Update with actual URL
-        const response = await fetch("http://localhost:8080/api/users", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            email,
-            password,
-            securityQuestion,
-            securityAnswer,
-          }),
-        });
-        const data = await response.json();
-        Alert.alert("Success", "Account created successfully!");
-      } catch (error) {
-        Alert.alert("Error", "Failed to create account");
-      }
-    } else {
-      // Login logic
-      try {
-        // TODO: Update with actual URL for our API to process login
-        const response = await fetch("http://localhost:8080/api/users/login", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email, password }),
-        });
-        if (response.ok) {
-          const user = await response.json();
-          Alert.alert("Success", `Welcome back, ${user.email}!`);
-        } else {
-          Alert.alert("Error", "Invalid credentials");
-        }
-      } catch (error) {
-        Alert.alert("Error", "Login failed");
-      }
-    }
-  };
-
-  const handleGoogleLogin = () => {
-    // Implement URL for Google OAuth
-    Alert.alert("Google Login", "Google OAuth integration coming soon!");
-  };
-
-  const handleInstagramLogin = () => {
-    // Implement URL for Instagram OAuth
-    Alert.alert("Instagram Login", "Instagram OAuth integration coming soon!");
-  };
+  // Use our custom authentication hook
+  const {
+    isSignUp,
+    isAdmin,
+    isLoading,
+    email,
+    password,
+    confirmPassword,
+    securityQuestion,
+    securityAnswer,
+    errors,
+    touched,
+    setEmail,
+    setPassword,
+    setConfirmPassword,
+    setSecurityQuestion,
+    setSecurityAnswer,
+    setIsAdmin,
+    handleBlur,
+    handleSubmit,
+    handleGoogleLogin,
+    handleInstagramLogin,
+    toggleMode,
+  } = useAuth();
 
   return (
     <>
@@ -127,7 +82,8 @@ export default function LoginScreen() {
                   styles.tab,
                   !isSignUp && styles.tabActive, // Conditional styling - applies tabActive when !isSignUp is true
                 ]}
-                onPress={() => setIsSignUp(false)} // onClick equivalent
+                onPress={toggleMode} // Use toggleMode from hook
+                disabled={isLoading} // Disable during loading
               >
                 <Text
                   style={[styles.tabText, !isSignUp && styles.tabTextActive]}
@@ -138,7 +94,8 @@ export default function LoginScreen() {
 
               <Pressable
                 style={[styles.tab, isSignUp && styles.tabActive]}
-                onPress={() => setIsSignUp(true)}
+                onPress={toggleMode}
+                disabled={isLoading}
               >
                 <Text
                   style={[styles.tabText, isSignUp && styles.tabTextActive]}
@@ -170,27 +127,44 @@ export default function LoginScreen() {
               <View style={styles.inputGroup}>
                 <Text style={styles.label}>Email</Text>
                 <TextInput
-                  style={styles.input}
+                  style={[
+                    styles.input,
+                    touched.email && errors.email && styles.inputError,
+                  ]}
                   placeholder="your@email.com"
                   placeholderTextColor={MUTED}
-                  value={email} // Controlled component - value from state
-                  onChangeText={setEmail} // Updates state on text change
-                  keyboardType="email-address" // Shows email-optimized keyboard
-                  autoCapitalize="none" // Prevents auto-capitalization
+                  value={email}
+                  onChangeText={setEmail}
+                  onBlur={() => handleBlur("email")} // Mark as touched on blur
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  editable={!isLoading}
                 />
+                {/* Show error message if field is touched and has error */}
+                {touched.email && errors.email ? (
+                  <Text style={styles.errorText}>{errors.email}</Text>
+                ) : null}
               </View>
 
               {/* PASSWORD INPUT */}
               <View style={styles.inputGroup}>
                 <Text style={styles.label}>Password</Text>
                 <TextInput
-                  style={styles.input}
+                  style={[
+                    styles.input,
+                    touched.password && errors.password && styles.inputError,
+                  ]}
                   placeholder="••••••••"
                   placeholderTextColor={MUTED}
                   value={password}
                   onChangeText={setPassword}
-                  secureTextEntry // Hides password characters
+                  onBlur={() => handleBlur("password")}
+                  secureTextEntry
+                  editable={!isLoading}
                 />
+                {touched.password && errors.password ? (
+                  <Text style={styles.errorText}>{errors.password}</Text>
+                ) : null}
               </View>
 
               {/* ==========================================
@@ -202,37 +176,73 @@ export default function LoginScreen() {
                   <View style={styles.inputGroup}>
                     <Text style={styles.label}>Confirm Password</Text>
                     <TextInput
-                      style={styles.input}
+                      style={[
+                        styles.input,
+                        touched.confirmPassword &&
+                          errors.confirmPassword &&
+                          styles.inputError,
+                      ]}
                       placeholder="••••••••"
                       placeholderTextColor={MUTED}
                       value={confirmPassword}
                       onChangeText={setConfirmPassword}
+                      onBlur={() => handleBlur("confirmPassword")}
                       secureTextEntry
+                      editable={!isLoading}
                     />
+                    {touched.confirmPassword && errors.confirmPassword ? (
+                      <Text style={styles.errorText}>
+                        {errors.confirmPassword}
+                      </Text>
+                    ) : null}
                   </View>
 
                   {/* SECURITY QUESTION */}
                   <View style={styles.inputGroup}>
                     <Text style={styles.label}>Security Question</Text>
                     <TextInput
-                      style={styles.input}
+                      style={[
+                        styles.input,
+                        touched.securityQuestion &&
+                          errors.securityQuestion &&
+                          styles.inputError,
+                      ]}
                       placeholder="What was your first pet's name?"
                       placeholderTextColor={MUTED}
                       value={securityQuestion}
                       onChangeText={setSecurityQuestion}
+                      onBlur={() => handleBlur("securityQuestion")}
+                      editable={!isLoading}
                     />
+                    {touched.securityQuestion && errors.securityQuestion ? (
+                      <Text style={styles.errorText}>
+                        {errors.securityQuestion}
+                      </Text>
+                    ) : null}
                   </View>
 
                   {/* SECURITY ANSWER */}
                   <View style={styles.inputGroup}>
                     <Text style={styles.label}>Security Answer</Text>
                     <TextInput
-                      style={styles.input}
+                      style={[
+                        styles.input,
+                        touched.securityAnswer &&
+                          errors.securityAnswer &&
+                          styles.inputError,
+                      ]}
                       placeholder="Your answer"
                       placeholderTextColor={MUTED}
                       value={securityAnswer}
                       onChangeText={setSecurityAnswer}
+                      onBlur={() => handleBlur("securityAnswer")}
+                      editable={!isLoading}
                     />
+                    {touched.securityAnswer && errors.securityAnswer ? (
+                      <Text style={styles.errorText}>
+                        {errors.securityAnswer}
+                      </Text>
+                    ) : null}
                   </View>
                 </>
               )}
@@ -240,15 +250,23 @@ export default function LoginScreen() {
               {/* ==========================================
                    SUBMIT BUTTON - Changes text based on state
                    ========================================== */}
-              <Pressable style={styles.submitBtn} onPress={handleSubmit}>
-                <Text style={styles.submitText}>
-                  {/* Ternary operator - condition ? ifTrue : ifFalse */}
-                  {isSignUp
-                    ? "CREATE ACCOUNT"
-                    : isAdmin
-                    ? "ADMIN LOGIN"
-                    : "SIGN IN"}
-                </Text>
+              <Pressable
+                style={[styles.submitBtn, isLoading && styles.submitBtnDisabled]}
+                onPress={handleSubmit}
+                disabled={isLoading}
+              >
+                {isLoading ? (
+                  <ActivityIndicator color="#1b1b1b" />
+                ) : (
+                  <Text style={styles.submitText}>
+                    {/* Ternary operator - condition ? ifTrue : ifFalse */}
+                    {isSignUp
+                      ? "CREATE ACCOUNT"
+                      : isAdmin
+                      ? "ADMIN LOGIN"
+                      : "SIGN IN"}
+                  </Text>
+                )}
               </Pressable>
 
               {/* ==========================================
@@ -425,6 +443,15 @@ const styles = StyleSheet.create({
     color: TEXT,
     fontSize: 15,
   },
+  inputError: {
+    borderColor: ERROR_COLOR,
+    borderWidth: 1.5,
+  },
+  errorText: {
+    color: ERROR_COLOR,
+    fontSize: 12,
+    marginTop: 4,
+  },
 
   // Submit Button
   submitBtn: {
@@ -433,6 +460,9 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     alignItems: "center",
     marginTop: 8,
+  },
+  submitBtnDisabled: {
+    opacity: 0.6,
   },
   submitText: {
     color: "#1b1b1b",
