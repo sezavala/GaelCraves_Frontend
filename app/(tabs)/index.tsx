@@ -1,5 +1,6 @@
 import * as React from "react";
-import { Link } from "expo-router";
+import { Link, useRouter } from "expo-router";
+import { Platform, Alert } from 'react-native';
 import {
   SafeAreaView,
   ScrollView,
@@ -14,6 +15,23 @@ import {
 export default function HomeScreen() {
   const { width } = useWindowDimensions();
   const isWide = width >= 900; // simple responsive tweak for web
+  const router = useRouter();
+
+  const handleNavLogin = (which = 'primary') => {
+    console.log('[nav] handleNavLogin called from', which);
+    // Show a native alert so the user sees something even if Metro logs aren't visible
+    try {
+      Alert.alert('Debug', `Login pressed (${which})`, [ { text: 'OK' } ]);
+    } catch (e) {
+      console.log('[nav] Alert failed', e);
+    }
+    // Attempt navigation as well
+    try {
+      router.push('/login');
+    } catch (e) {
+      console.log('[nav] router.push failed', e);
+    }
+  };
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -26,14 +44,42 @@ export default function HomeScreen() {
           </View>
           <View style={styles.navRight}>
             <Text style={styles.navLink}>Home</Text>
+            {Platform.OS === 'web' ? (
+              <Link href="/login" asChild>
+                <Pressable style={styles.viewMenuBtn}>
+                  <Text style={styles.viewMenuText}>LOGIN</Text>
+                </Pressable>
+              </Link>
+            ) : (
+              // On native, use router.push so the press always triggers navigation
+              <Pressable
+                style={styles.viewMenuBtn}
+                android_ripple={{ color: 'rgba(0,0,0,0.1)' }}
+                onPress={() => handleNavLogin('nav-left')}
+                testID="nav-login-left"
+              >
+                <Text style={styles.viewMenuText}>LOGIN</Text>
+              </Pressable>
+            )}
             <Text style={styles.navLink}>About</Text>
             <Text style={styles.navLink}>Menu</Text>
             <Text style={styles.navLink}>Contact us</Text>
-            <Link href="/login" asChild>
-              <Pressable style={styles.viewMenuBtn}>
+            {Platform.OS === 'web' ? (
+              <Link href="/login" asChild>
+                <Pressable style={styles.viewMenuBtn}>
+                  <Text style={styles.viewMenuText}>LOGIN</Text>
+                </Pressable>
+              </Link>
+            ) : (
+              <Pressable
+                style={styles.viewMenuBtn}
+                android_ripple={{ color: 'rgba(0,0,0,0.1)' }}
+                onPress={() => handleNavLogin('nav-right')}
+                testID="nav-login-right"
+              >
                 <Text style={styles.viewMenuText}>LOGIN</Text>
               </Pressable>
-            </Link>{" "}
+            )}
           </View>
         </View>
 
@@ -48,10 +94,7 @@ export default function HomeScreen() {
           <View style={[styles.heroLeft, { flex: isWide ? 1 : undefined }]}>
             <Text style={styles.eyebrow}>Crafted with passion</Text>
             <Text style={styles.h1}>
-              Where <Text style={styles.accent}>Cravings</Text>
-              {""}
-              Meet Their Perfect{""}
-              Match
+              Where <Text style={styles.accent}>Cravings</Text>{" "}Meet Their Perfect{" "}Match
             </Text>
             <Text style={styles.sub}>
               Discover bold flavors and unforgettable dishes in a place where

@@ -6,7 +6,10 @@ import { useAuth } from '@/auth/AuthContext';
 import Constants from 'expo-constants';
 
 const extra = (Constants.expoConfig && Constants.expoConfig.extra) || (Constants.manifest && Constants.manifest.extra) || {};
-const GOOGLE_CLIENT_ID = extra.GOOGLE_CLIENT_ID;
+// New platform-specific IDs (replace placeholders in .env with real values)
+const WEB_CLIENT_ID = extra.GOOGLE_WEB_CLIENT_ID || extra.GOOGLE_CLIENT_ID;
+const ANDROID_CLIENT_ID = extra.GOOGLE_ANDROID_CLIENT_ID || extra.GOOGLE_CLIENT_ID;
+const IOS_CLIENT_ID = extra.GOOGLE_IOS_CLIENT_ID || extra.GOOGLE_CLIENT_ID;
 const API_BASE = extra.API_BASE || 'http://localhost:8080';
 
 
@@ -16,18 +19,22 @@ export const NON_PROXY_REDIRECT_URI = makeRedirectUri({ useProxy: false } as any
 
 export function useGoogleLogin() {
   const { setUser } = useAuth();
-  // Use the Expo proxy for native (Expo Go) and a non-proxy redirect for web.
-  const useProxy = Platform.OS !== 'web';
+  // Decide whether to use the Expo auth proxy. Use the proxy when running inside
+  // Expo Go (appOwnership === 'expo'). For standalone / dev-client / bare apps
+  // the proxy won't work; useProxy must be false so makeRedirectUri returns an
+  // app-specific redirect URI that matches your native configuration.
+    const useProxy = (Constants.appOwnership === 'expo');
 
-  const redirectUri = makeRedirectUri({ useProxy } as any);
+    const redirectUri = makeRedirectUri({ useProxy } as any);
 
-  console.log('[googleAuth] chosen redirectUri=', redirectUri, 'useProxy=', useProxy);
+    console.log('[googleAuth] appOwnership=', Constants.appOwnership, 'chosen redirectUri=', redirectUri, 'useProxy=', useProxy);
 
   const [request, response, promptAsync] = Google.useAuthRequest({
-    clientId: GOOGLE_CLIENT_ID,
-    iosClientId: GOOGLE_CLIENT_ID,
-    androidClientId: GOOGLE_CLIENT_ID,
-    webClientId: GOOGLE_CLIENT_ID,
+    // Provide only the relevant platform-specific IDs
+    webClientId: WEB_CLIENT_ID,
+    androidClientId: ANDROID_CLIENT_ID,
+    iosClientId: IOS_CLIENT_ID,
+    clientId: Platform.OS === 'web' ? WEB_CLIENT_ID : undefined,
     redirectUri,
     responseType: 'code',
     scopes: ['openid', 'profile', 'email'],
