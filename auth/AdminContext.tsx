@@ -14,10 +14,13 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   useEffect(() => {
     // Check if user has admin role
+    console.log('🔐 AdminContext: checking user', user);
     if (user && user.roles && Array.isArray(user.roles)) {
       const hasAdminRole = user.roles.includes('ADMIN') || user.roles.includes('GAEL_HIMSELF');
+      console.log('🔐 AdminContext: user roles', user.roles, 'hasAdminRole:', hasAdminRole);
       setIsAdmin(hasAdminRole);
     } else {
+      console.log('🔐 AdminContext: no user or roles, setting isAdmin to false');
       setIsAdmin(false);
     }
   }, [user]);

@@ -22,12 +22,34 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUserState] = useState<User>(null);
 
   useEffect(() => {
-    // Hydrate from localStorage on web / when available
+    // Hydrate from localStorage and check token expiration
     try {
       if (typeof window !== 'undefined' && window.localStorage) {
         const raw = window.localStorage.getItem('@user');
         if (raw) {
           const userData = JSON.parse(raw);
+          
+          // Check if token is expired
+          if (userData.token) {
+            try {
+              const payload = userData.token.split('.')[1];
+              const decoded = JSON.parse(atob(payload));
+              const exp = decoded.exp * 1000; // Convert to milliseconds
+              
+              if (Date.now() >= exp) {
+                console.log('🔐 Token expired, clearing user');
+                window.localStorage.removeItem('@user');
+                window.localStorage.removeItem('@token');
+                return;
+              }
+            } catch (e) {
+              console.error('Failed to decode token:', e);
+              window.localStorage.removeItem('@user');
+              window.localStorage.removeItem('@token');
+              return;
+            }
+          }
+          
           setUserState(userData);
           console.log('💾 User loaded from storage:', userData);
         }

@@ -39,7 +39,7 @@ interface TouchedFields {
 
 export function useAuth() {
   const router = useRouter();
-  const { setUser } = useAuthContext();
+  const { setUser, logout: contextLogout } = useAuthContext();
 
   // ==========================================
   // STATE MANAGEMENT
@@ -128,6 +128,18 @@ export function useAuth() {
    */
   const handleBlur = (field: keyof TouchedFields) => {
     setTouched((prev) => ({ ...prev, [field]: true }));
+  };
+
+  const handleLogout = async () => {
+    try {
+      await logoutService();
+      contextLogout();
+      router.replace("/(tabs)");
+      Alert.alert("Success", "You have been logged out");
+    } catch (error) {
+      console.error("Logout error:", error);
+      Alert.alert("Error", "Failed to logout. Please try again.");
+    }
   };
 
   /**
@@ -348,6 +360,7 @@ export function useAuth() {
     handleSubmit,
     handleGoogleLogin,
     handleInstagramLogin,
+    handleLogout,
     toggleMode,
     resetForm,
   };

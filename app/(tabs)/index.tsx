@@ -1,6 +1,6 @@
 import * as React from "react";
 import { Link, useRouter } from "expo-router";
-import { Platform, Alert } from 'react-native';
+import { Alert } from "react-native";
 import {
   SafeAreaView,
   ScrollView,
@@ -19,20 +19,31 @@ export default function HomeScreen() {
   const { width } = useWindowDimensions();
   const isWide = width >= 900; // simple responsive tweak for web
   const router = useRouter();
+  const { user, logout } = useAuth();
 
-  const handleNavLogin = (which = 'primary') => {
-    console.log('[nav] handleNavLogin called from', which);
+  const handleNavLogin = (which = "primary") => {
+    console.log("[nav] handleNavLogin called from", which);
     // Show a native alert so the user sees something even if Metro logs aren't visible
     try {
-      Alert.alert('Debug', `Login pressed (${which})`, [ { text: 'OK' } ]);
+      Alert.alert("Debug", `Login pressed (${which})`, [{ text: "OK" }]);
     } catch (e) {
-      console.log('[nav] Alert failed', e);
+      console.log("[nav] Alert failed", e);
     }
     // Attempt navigation as well
     try {
-      router.push('/login');
+      router.push("/login");
     } catch (e) {
-      console.log('[nav] router.push failed', e);
+      console.log("[nav] router.push failed", e);
+    }
+  };
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+      Alert.alert("Success", "You have been logged out");
+      router.replace("/(tabs)");
+    } catch (error) {
+      console.error("Logout error:", error);
     }
   };
 
@@ -50,41 +61,36 @@ export default function HomeScreen() {
           </View>
           <View style={styles.navRight}>
             <Text style={styles.navLink}>Home</Text>
-            {Platform.OS === 'web' ? (
-              <Link href="/login" asChild>
-                <Pressable style={styles.viewMenuBtn}>
-                  <Text style={styles.viewMenuText}>LOGIN</Text>
-                </Pressable>
-              </Link>
-            ) : (
-              // On native, use router.push so the press always triggers navigation
-              <Pressable
-                style={styles.viewMenuBtn}
-                android_ripple={{ color: 'rgba(0,0,0,0.1)' }}
-                onPress={() => handleNavLogin('nav-left')}
-                testID="nav-login-left"
-              >
-                <Text style={styles.viewMenuText}>LOGIN</Text>
-              </Pressable>
-            )}
             <Text style={styles.navLink}>About</Text>
             <Text style={styles.navLink}>Menu</Text>
             <Text style={styles.navLink}>Contact us</Text>
-            {Platform.OS === 'web' ? (
-              <Link href="/login" asChild>
-                <Pressable style={styles.viewMenuBtn}>
-                  <Text style={styles.viewMenuText}>LOGIN</Text>
-                </Pressable>
-              </Link>
-            ) : (
+            
+            {user ? (
               <Pressable
-                style={styles.viewMenuBtn}
-                android_ripple={{ color: 'rgba(0,0,0,0.1)' }}
-                onPress={() => handleNavLogin('nav-right')}
-                testID="nav-login-right"
+                style={styles.logoutBtn}
+                onPress={handleLogout}
               >
-                <Text style={styles.viewMenuText}>LOGIN</Text>
+                <Text style={styles.logoutText}>LOGOUT</Text>
               </Pressable>
+            ) : (
+              <>
+                {Platform.OS === "web" ? (
+                  <Link href="/login" asChild>
+                    <Pressable style={styles.viewMenuBtn}>
+                      <Text style={styles.viewMenuText}>LOGIN</Text>
+                    </Pressable>
+                  </Link>
+                ) : (
+                  <Pressable
+                    style={styles.viewMenuBtn}
+                    android_ripple={{ color: "rgba(0,0,0,0.1)" }}
+                    onPress={() => handleNavLogin("nav-right")}
+                    testID="nav-login-right"
+                  >
+                    <Text style={styles.viewMenuText}>LOGIN</Text>
+                  </Pressable>
+                )}
+              </>
             )}
           </View>
         </View>
@@ -100,7 +106,8 @@ export default function HomeScreen() {
           <View style={[styles.heroLeft, { flex: isWide ? 1 : undefined }]}>
             <Text style={styles.eyebrow}>Crafted with passion</Text>
             <Text style={styles.h1}>
-              Where <Text style={styles.accent}>Cravings</Text>{" "}Meet Their Perfect{" "}Match
+              Where <Text style={styles.accent}>Cravings</Text> Meet Their
+              Perfect Match
             </Text>
             <Text style={styles.sub}>
               Discover bold flavors and unforgettable dishes in a place where
