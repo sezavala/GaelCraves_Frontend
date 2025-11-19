@@ -1,5 +1,5 @@
 import * as React from "react";
-import { Link } from "expo-router";
+import { Link, useRouter } from "expo-router";
 import {
   SafeAreaView,
   ScrollView,
@@ -9,15 +9,29 @@ import {
   Image,
   StyleSheet,
   useWindowDimensions,
+  Platform,
 } from "react-native";
+import { useAuth } from "@/auth/AuthContext";
+import { useAdminContext } from "@/auth/AdminContext";
 
 export default function HomeScreen() {
   const { width } = useWindowDimensions();
-  const isWide = width >= 900; // simple responsive tweak for web
+  const isWide = width >= 900;
+  const { user, logout } = useAuth();
+  const { isAdmin } = useAdminContext();
+  const router = useRouter();
+
+  const handleLogout = () => {
+    logout();
+    router.replace("/login");
+  };
 
   return (
     <SafeAreaView style={styles.safe}>
-      <ScrollView contentContainerStyle={styles.container}>
+      <ScrollView
+        contentContainerStyle={styles.container}
+        contentInsetAdjustmentBehavior="automatic"
+      >
         {/* NAVBAR */}
         <View style={styles.nav}>
           <View style={styles.brandRow}>
@@ -29,11 +43,23 @@ export default function HomeScreen() {
             <Text style={styles.navLink}>About</Text>
             <Text style={styles.navLink}>Menu</Text>
             <Text style={styles.navLink}>Contact us</Text>
-            <Link href="/login" asChild>
-              <Pressable style={styles.viewMenuBtn}>
-                <Text style={styles.viewMenuText}>LOGIN</Text>
-              </Pressable>
-            </Link>{" "}
+
+            {user ? (
+              <View style={styles.userSection}>
+                <Text style={styles.welcomeText}>
+                  Welcome, {user.firstName || user.email}!
+                </Text>
+                <Pressable style={styles.logoutBtn} onPress={handleLogout}>
+                  <Text style={styles.logoutText}>LOGOUT</Text>
+                </Pressable>
+              </View>
+            ) : (
+              <Link href="/login" asChild>
+                <Pressable style={styles.viewMenuBtn}>
+                  <Text style={styles.viewMenuText}>LOGIN</Text>
+                </Pressable>
+              </Link>
+            )}
           </View>
         </View>
 
@@ -48,10 +74,8 @@ export default function HomeScreen() {
           <View style={[styles.heroLeft, { flex: isWide ? 1 : undefined }]}>
             <Text style={styles.eyebrow}>Crafted with passion</Text>
             <Text style={styles.h1}>
-              Where <Text style={styles.accent}>Cravings</Text>
-              {""}
-              Meet Their Perfect{""}
-              Match
+              Where <Text style={styles.accent}>Cravings</Text> Meet Their
+              Perfect Match
             </Text>
             <Text style={styles.sub}>
               Discover bold flavors and unforgettable dishes in a place where
@@ -68,19 +92,12 @@ export default function HomeScreen() {
           {/* Right imagery */}
           <View style={[styles.heroRight, { flex: isWide ? 1 : undefined }]}>
             <View style={styles.dishStage}>
-              {/* Replace these URIs with your own assets later */}
+              <Image style={[styles.dish, styles.dishTop]} resizeMode="cover" />
               <Image
-                //source={{ uri: 'link goes here' }}
-                style={[styles.dish, styles.dishTop]}
-                resizeMode="cover"
-              />
-              <Image
-                //source={{ uri: 'link goes here' }}
                 style={[styles.dish, styles.dishBottomLeft]}
                 resizeMode="cover"
               />
               <Image
-                //source={{ uri: 'link goes here' }}
                 style={[styles.dish, styles.dishBottomRight]}
                 resizeMode="cover"
               />
@@ -95,6 +112,9 @@ export default function HomeScreen() {
             © {new Date().getFullYear()} Gael's Craves — All rights reserved.
           </Text>
         </View>
+
+        {/* Extra padding for tab bar on Android */}
+        {Platform.OS === "android" && <View style={{ height: 80 }} />}
       </ScrollView>
     </SafeAreaView>
   );
@@ -108,7 +128,10 @@ const MUTED = "rgba(255,255,255,0.72)";
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: BG },
-  container: { paddingHorizontal: 20, paddingBottom: 40 },
+  container: {
+    paddingHorizontal: 20,
+    paddingBottom: Platform.OS === "android" ? 100 : 40,
+  },
 
   // NAV
   nav: {
@@ -137,6 +160,49 @@ const styles = StyleSheet.create({
   },
   viewMenuText: { color: "#1b1b1b", fontWeight: "800" },
 
+  // User section
+  userSection: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  adminButton: {
+    backgroundColor: PEACH,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 6,
+  },
+  adminButtonText: {
+    color: "#1b1b1b",
+    fontSize: 12,
+    fontWeight: "800",
+  },
+  welcomeText: {
+    color: TEXT,
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  adminBadge: {
+    backgroundColor: PEACH,
+    color: "#1b1b1b",
+    fontSize: 10,
+    fontWeight: "800",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 4,
+  },
+  logoutBtn: {
+    backgroundColor: PEACH,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    borderRadius: 8,
+  },
+  logoutText: {
+    color: "#1b1b1b",
+    fontSize: 12,
+    fontWeight: "800",
+  },
+
   // HERO
   heroCard: {
     marginTop: 8,
@@ -159,7 +225,7 @@ const styles = StyleSheet.create({
     lineHeight: 62,
     fontWeight: "800",
     marginBottom: 14,
-    fontFamily: "Georgia, Times New Roman, serif", // web serif fallback
+    fontFamily: "Georgia, Times New Roman, serif",
   },
   accent: { color: PEACH },
   sub: {

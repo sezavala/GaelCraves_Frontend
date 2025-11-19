@@ -5,6 +5,8 @@
 
 import { useState, useEffect } from "react";
 import { Alert } from "react-native";
+import { useRouter } from "expo-router";
+import { useAuth as useAuthContext } from "@/auth/AuthContext";
 import {
   validateEmail,
   validatePassword,
@@ -12,7 +14,12 @@ import {
   validateSecurityQuestion,
   validateSecurityAnswer,
 } from "@/utils/validation";
-import { signUp, login, loginWithGoogle, loginWithInstagram } from "@/services/authService";
+import {
+  signUp,
+  login,
+  loginWithGoogle,
+  loginWithInstagram,
+} from "@/services/authService";
 
 interface FormErrors {
   email: string;
@@ -31,6 +38,9 @@ interface TouchedFields {
 }
 
 export function useAuth() {
+  const router = useRouter();
+  const { setUser } = useAuthContext();
+
   // ==========================================
   // STATE MANAGEMENT
   // ==========================================
@@ -42,6 +52,8 @@ export function useAuth() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
   const [securityQuestion, setSecurityQuestion] = useState("");
   const [securityAnswer, setSecurityAnswer] = useState("");
 
@@ -64,10 +76,10 @@ export function useAuth() {
   });
 
   // ==========================================
-  // REAL-TIME VALIDATION EFFECTS
+  // VALIDATION EFFECTS
   // ==========================================
 
-  // Validate email when it changes (only if touched)
+  // Validate email (only if touched)
   useEffect(() => {
     if (touched.email) {
       const result = validateEmail(email);
@@ -75,7 +87,7 @@ export function useAuth() {
     }
   }, [email, touched.email]);
 
-  // Validate password when it changes (only if touched)
+  // Validate password (only if touched)
   useEffect(() => {
     if (touched.password) {
       const result = validatePassword(password);
@@ -83,13 +95,13 @@ export function useAuth() {
     }
   }, [password, touched.password]);
 
-  // Validate confirm password (only if touched)
+  // Validate confirm password (only if touched and in signup mode)
   useEffect(() => {
     if (touched.confirmPassword && isSignUp) {
       const result = validateConfirmPassword(password, confirmPassword);
       setErrors((prev) => ({ ...prev, confirmPassword: result.error }));
     }
-  }, [confirmPassword, password, touched.confirmPassword, isSignUp]);
+  }, [password, confirmPassword, touched.confirmPassword, isSignUp]);
 
   // Validate security question (only if touched)
   useEffect(() => {
@@ -119,35 +131,24 @@ export function useAuth() {
   };
 
   /**
-   * Validates all fields before form submission
-   * @returns true if form is valid, false otherwise
+   * Validates all form fields before submission
    */
   const validateForm = (): boolean => {
-    const emailResult = validateEmail(email);
-    const passwordResult = validatePassword(password);
-
     const newErrors: FormErrors = {
-      email: emailResult.error,
-      password: passwordResult.error,
-      confirmPassword: "",
-      securityQuestion: "",
-      securityAnswer: "",
+      email: validateEmail(email).error,
+      password: validatePassword(password).error,
+      confirmPassword: isSignUp
+        ? validateConfirmPassword(password, confirmPassword).error
+        : "",
+      securityQuestion: isSignUp
+        ? validateSecurityQuestion(securityQuestion).error
+        : "",
+      securityAnswer: isSignUp
+        ? validateSecurityAnswer(securityAnswer).error
+        : "",
     };
 
-    // Additional validation for sign up
-    if (isSignUp) {
-      const confirmResult = validateConfirmPassword(password, confirmPassword);
-      const questionResult = validateSecurityQuestion(securityQuestion);
-      const answerResult = validateSecurityAnswer(securityAnswer);
-
-      newErrors.confirmPassword = confirmResult.error;
-      newErrors.securityQuestion = questionResult.error;
-      newErrors.securityAnswer = answerResult.error;
-    }
-
     setErrors(newErrors);
-
-    // Mark all relevant fields as touched
     setTouched({
       email: true,
       password: true,
@@ -181,14 +182,33 @@ export function useAuth() {
         const result = await signUp({
           email,
           password,
+          firstName,
+          lastName,
           securityQuestion,
           securityAnswer,
         });
 
-        if (result.success) {
-          Alert.alert("Success", result.message);
-          // Reset form after successful signup
+        if (result.success && result.user) {
+          // Store user data in AuthContext
+          setUser(result.user);
+
+          // Reset form
           resetForm();
+          const roles = result.user.roles || [];
+          const isAdminUser =
+            roles.includes("ADMIN") || roles.includes("GAEL_HIMSELF");
+
+          // Navigate immediately based on role
+          if (isAdminUser) {
+            router.replace("/(tabs)/admin");
+          } else {
+            router.replace("/(tabs)");
+          }
+
+          // Show success message after navigation starts
+          setTimeout(() => {
+            Alert.alert("Success", result.message);
+          }, 100);
         } else {
           Alert.alert("Error", result.message);
         }
@@ -196,13 +216,32 @@ export function useAuth() {
         // Login flow
         const result = await login({ email, password });
 
-        if (result.success) {
-          Alert.alert("Success", result.message);
-          // TODO: Navigate to home screen or dashboard
+        if (result.success && result.user) {
+          // Store user data in AuthContext
+          setUser(result.user);
+
+          const roles = result.user.roles || [];
+          const isAdminUser =
+            roles.includes("ADMIN") || roles.includes("GAEL_HIMSELF");
+
+          // Navigate immediately based on role
+          if (isAdminUser) {
+            router.replace("/(tabs)/admin");
+          } else {
+            router.replace("/(tabs)");
+          }
+
+          // Show success message after navigation starts
+          setTimeout(() => {
+            Alert.alert("Success", result.message);
+          }, 100);
         } else {
           Alert.alert("Error", result.message);
         }
       }
+    } catch (error) {
+      console.error("Submit error:", error);
+      Alert.alert("Error", "An unexpected error occurred. Please try again.");
     } finally {
       setIsLoading(false);
     }
@@ -215,10 +254,7 @@ export function useAuth() {
     setIsLoading(true);
     try {
       const result = await loginWithGoogle();
-      Alert.alert(
-        result.success ? "Success" : "Info",
-        result.message
-      );
+      Alert.alert(result.success ? "Success" : "Info", result.message);
     } finally {
       setIsLoading(false);
     }
@@ -231,10 +267,7 @@ export function useAuth() {
     setIsLoading(true);
     try {
       const result = await loginWithInstagram();
-      Alert.alert(
-        result.success ? "Success" : "Info",
-        result.message
-      );
+      Alert.alert(result.success ? "Success" : "Info", result.message);
     } finally {
       setIsLoading(false);
     }
@@ -247,6 +280,8 @@ export function useAuth() {
     setEmail("");
     setPassword("");
     setConfirmPassword("");
+    setFirstName("");
+    setLastName("");
     setSecurityQuestion("");
     setSecurityAnswer("");
     setErrors({
@@ -291,6 +326,8 @@ export function useAuth() {
     email,
     password,
     confirmPassword,
+    firstName,
+    lastName,
     securityQuestion,
     securityAnswer,
     errors,
@@ -300,6 +337,8 @@ export function useAuth() {
     setEmail,
     setPassword,
     setConfirmPassword,
+    setFirstName,
+    setLastName,
     setSecurityQuestion,
     setSecurityAnswer,
     setIsAdmin,

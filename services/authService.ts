@@ -3,12 +3,13 @@
  * Handles all API calls related to user authentication
  */
 
-// TODO: Move this to environment config
-const API_BASE_URL = "http://localhost:8080/api";
+import { API_BASE_URL } from "@/config/environment";
 
 export interface SignUpData {
   email: string;
   password: string;
+  firstName: string;
+  lastName: string;
   securityQuestion: string;
   securityAnswer: string;
 }
@@ -21,7 +22,10 @@ export interface LoginData {
 export interface User {
   id: string;
   email: string;
-  // Add other user properties as needed
+  firstName: string;
+  lastName: string;
+  roles: string[];
+  token?: string;
 }
 
 export interface AuthResponse {
@@ -31,114 +35,197 @@ export interface AuthResponse {
 }
 
 /**
- * Creates a new user account
- * @param data - User registration data
- * @returns AuthResponse with success status and message
+ * Create fetch with timeout
  */
-export async function signUp(data: SignUpData): Promise<AuthResponse> {
+async function fetchWithTimeout(
+  url: string,
+  options: RequestInit,
+  timeout = 10000
+): Promise<Response> {
+  const controller = new AbortController();
+  const id = setTimeout(() => controller.abort(), timeout);
+
   try {
-    const response = await fetch(`${API_BASE_URL}/users`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(data),
+    const response = await fetch(url, {
+      ...options,
+      signal: controller.signal,
     });
-
-    const result = await response.json();
-
-    if (response.ok) {
-      return {
-        success: true,
-        message: "Account created successfully!",
-        user: result,
-      };
-    } else {
-      return {
-        success: false,
-        message: result.message || "Failed to create account",
-      };
-    }
+    clearTimeout(id);
+    return response;
   } catch (error) {
-    console.error("Sign up error:", error);
-    return {
-      success: false,
-      message: "Network error. Please check your connection and try again.",
-    };
+    clearTimeout(id);
+    throw error;
   }
 }
 
-/**
- * Logs in an existing user
- * @param data - User login credentials
- * @returns AuthResponse with success status and user data
- */
 export async function login(data: LoginData): Promise<AuthResponse> {
+  console.log('🔐 Attempting login...');
+  console.log('📡 API URL:', `${API_BASE_URL}/users/login`);
+  console.log('📤 Login data:', { email: data.email, password: '***' });
+
   try {
-    const response = await fetch(`${API_BASE_URL}/users/login`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
+    const response = await fetchWithTimeout(
+      `${API_BASE_URL}/users/login`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Accept": "application/json",
+        },
+        body: JSON.stringify(data),
       },
-      body: JSON.stringify(data),
-    });
+      10000 // 10 second timeout
+    );
+
+    console.log('📥 Response status:', response.status);
 
     if (response.ok) {
-      const user = await response.json();
+      const result = await response.json();
+      console.log('✅ Login successful:', result);
+
+      // Map backend response to User interface
+      const user: User = {
+        id: result.userId?.toString() || "",
+        email: result.email || "",
+        firstName: result.firstName || "",
+        lastName: result.lastName || "",
+        roles: Array.isArray(result.roles) ? result.roles : [],
+        token: result.token || "",
+      };
+
       return {
         success: true,
-        message: `Welcome back, ${user.email}!`,
+        message: `Welcome back, ${user.firstName || user.email}!`,
         user,
       };
     } else {
-      const error = await response.json();
+      const errorText = await response.text();
+      console.error('❌ Login failed:', response.status, errorText);
+      
+      let errorMessage = "Invalid credentials";
+      try {
+        const error = JSON.parse(errorText);
+        errorMessage = error.error || error.message || errorMessage;
+      } catch (e) {
+        // If not JSON, use the text as error
+        errorMessage = errorText || errorMessage;
+      }
+
       return {
         success: false,
-        message: error.message || "Invalid credentials",
+        message: errorMessage,
       };
     }
-  } catch (error) {
-    console.error("Login error:", error);
+  } catch (error: any) {
+    console.error("❌ Network error during login:", error);
+    
+    if (error.name === 'AbortError') {
+      return {
+        success: false,
+        message: "Request timeout. Please check your connection and try again.",
+      };
+    }
+    
+    if (error.message?.includes('Network request failed')) {
+      return {
+        success: false,
+        message: "Cannot connect to server. Please check if the backend is running.",
+      };
+    }
+
     return {
       success: false,
-      message: "Network error. Please check your connection and try again.",
+      message: `Network error: ${error.message || 'Please check your connection'}`,
     };
   }
 }
 
-/**
- * Handles Google OAuth login
- * @returns AuthResponse with success status
- * TODO: Implement actual Google OAuth flow
- */
+export async function signUp(data: SignUpData): Promise<AuthResponse> {
+  console.log('📝 Attempting signup...');
+  console.log('📡 API URL:', `${API_BASE_URL}/users`);
+
+  try {
+    const response = await fetchWithTimeout(
+      `${API_BASE_URL}/users`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Accept": "application/json",
+        },
+        body: JSON.stringify(data),
+      },
+      10000
+    );
+
+    console.log('📥 Signup response status:', response.status);
+
+    if (response.ok) {
+      const result = await response.json();
+      console.log('✅ Signup successful:', result);
+
+      const user: User = {
+        id: result.userId?.toString() || "",
+        email: result.email || data.email,
+        firstName: result.firstName || data.firstName,
+        lastName: result.lastName || data.lastName,
+        roles: Array.isArray(result.roles) ? result.roles : ["USER"],
+        token: result.token || "",
+      };
+
+      return {
+        success: true,
+        message: "Account created successfully!",
+        user,
+      };
+    } else {
+      const errorText = await response.text();
+      console.error('❌ Signup failed:', response.status, errorText);
+      
+      let errorMessage = "Failed to create account";
+      try {
+        const error = JSON.parse(errorText);
+        errorMessage = error.error || error.message || errorMessage;
+      } catch (e) {
+        errorMessage = errorText || errorMessage;
+      }
+
+      return {
+        success: false,
+        message: errorMessage,
+      };
+    }
+  } catch (error: any) {
+    console.error("❌ Network error during signup:", error);
+    
+    if (error.name === 'AbortError') {
+      return {
+        success: false,
+        message: "Request timeout. Please try again.",
+      };
+    }
+
+    return {
+      success: false,
+      message: `Network error: ${error.message || 'Please check your connection'}`,
+    };
+  }
+}
+
 export async function loginWithGoogle(): Promise<AuthResponse> {
-  // TODO: Implement Google OAuth
   return {
     success: false,
     message: "Google OAuth integration coming soon!",
   };
 }
 
-/**
- * Handles Instagram OAuth login
- * @returns AuthResponse with success status
- * TODO: Implement actual Instagram OAuth flow
- */
 export async function loginWithInstagram(): Promise<AuthResponse> {
-  // TODO: Implement Instagram OAuth
   return {
     success: false,
     message: "Instagram OAuth integration coming soon!",
   };
 }
 
-/**
- * Logs out the current user
- * @returns Promise that resolves when logout is complete
- * TODO: Implement actual logout logic (clear tokens, etc.)
- */
 export async function logout(): Promise<void> {
-  // TODO: Clear authentication tokens
-  // TODO: Clear user session
   console.log("User logged out");
 }

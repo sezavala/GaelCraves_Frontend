@@ -1,30 +1,29 @@
-import GoogleSignIn from '@/components/GoogleSignIn';
 import React from "react";
 import {
-  StyleSheet,
+  SafeAreaView,
+  ScrollView,
   View,
   Text,
   TextInput,
   Pressable,
-  ScrollView,
-  SafeAreaView,
   ActivityIndicator,
+  StyleSheet,
 } from "react-native";
-import { Link, Stack } from "expo-router";
+import { Stack, Link } from "expo-router";
 import { useAuth } from "@/hooks/useAuth";
+import GoogleSignIn from "@/components/GoogleSignIn";
 
-// Color scheme matching your home page
+// Color constants for the login screen theme
 const BG = "#0B1313";
 const PANEL = "#0E1717";
 const PEACH = "#E7C4A3";
 const TEXT = "rgba(255,255,255,0.92)";
 const MUTED = "rgba(255,255,255,0.72)";
-const INPUT_BG = "#1a2424";
+const INPUT_BG = "#151F1F";
 const BORDER = "rgba(255,255,255,0.08)";
-const ERROR_COLOR = "#ff4444";
+const ERROR_COLOR = "#ff6b6b";
 
 export default function LoginScreen() {
-  // Use our custom authentication hook
   const {
     isSignUp,
     isAdmin,
@@ -32,6 +31,8 @@ export default function LoginScreen() {
     email,
     password,
     confirmPassword,
+    firstName,
+    lastName,
     securityQuestion,
     securityAnswer,
     errors,
@@ -39,6 +40,8 @@ export default function LoginScreen() {
     setEmail,
     setPassword,
     setConfirmPassword,
+    setFirstName,
+    setLastName,
     setSecurityQuestion,
     setSecurityAnswer,
     setIsAdmin,
@@ -51,14 +54,8 @@ export default function LoginScreen() {
 
   return (
     <>
-      {/* Fragment - Groups elements without adding extra DOM nodes */}
-
-      {/* Stack.Screen - Configures the screen's header */}
       <Stack.Screen options={{ headerShown: false }} />
-
-      {/* SafeAreaView - Prevents content from being hidden by notches/status bars */}
       <SafeAreaView style={styles.safe}>
-        {/* ScrollView - Makes content scrollable if it overflows */}
         <ScrollView contentContainerStyle={styles.container}>
           {/* ==========================================
                HEADER SECTION
@@ -136,16 +133,45 @@ export default function LoginScreen() {
                   placeholderTextColor={MUTED}
                   value={email}
                   onChangeText={setEmail}
-                  onBlur={() => handleBlur("email")} // Mark as touched on blur
+                  onBlur={() => handleBlur("email")}
                   keyboardType="email-address"
                   autoCapitalize="none"
                   editable={!isLoading}
                 />
-                {/* Show error message if field is touched and has error */}
                 {touched.email && errors.email ? (
                   <Text style={styles.errorText}>{errors.email}</Text>
                 ) : null}
               </View>
+
+              {/* FIRST NAME - Only show during sign up */}
+              {isSignUp && (
+                <View style={styles.inputGroup}>
+                  <Text style={styles.label}>First Name</Text>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="John"
+                    placeholderTextColor={MUTED}
+                    value={firstName}
+                    onChangeText={setFirstName}
+                    editable={!isLoading}
+                  />
+                </View>
+              )}
+
+              {/* LAST NAME - Only show during sign up */}
+              {isSignUp && (
+                <View style={styles.inputGroup}>
+                  <Text style={styles.label}>Last Name</Text>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Doe"
+                    placeholderTextColor={MUTED}
+                    value={lastName}
+                    onChangeText={setLastName}
+                    editable={!isLoading}
+                  />
+                </View>
+              )}
 
               {/* PASSWORD INPUT */}
               <View style={styles.inputGroup}>
@@ -252,7 +278,10 @@ export default function LoginScreen() {
                    SUBMIT BUTTON - Changes text based on state
                    ========================================== */}
               <Pressable
-                style={[styles.submitBtn, isLoading && styles.submitBtnDisabled]}
+                style={[
+                  styles.submitBtn,
+                  isLoading && styles.submitBtnDisabled,
+                ]}
                 onPress={handleSubmit}
                 disabled={isLoading}
               >
@@ -284,12 +313,12 @@ export default function LoginScreen() {
                    ========================================== */}
               <View style={styles.socialRow}>
                 {/* GOOGLE BUTTON */}
-                  {/* GOOGLE BUTTON (component uses expo-auth-session hook) */}
-                  <GoogleSignIn
-                    style={styles.socialBtn}
-                    iconStyle={styles.socialIcon}
-                    textStyle={styles.socialText}
-                  />
+                {/* GOOGLE BUTTON (component uses expo-auth-session hook) */}
+                <GoogleSignIn
+                  style={styles.socialBtn}
+                  iconStyle={styles.socialIcon}
+                  textStyle={styles.socialText}
+                />
 
                 {/* INSTAGRAM BUTTON */}
                 <Pressable
