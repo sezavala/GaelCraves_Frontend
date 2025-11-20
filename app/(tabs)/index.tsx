@@ -1,5 +1,6 @@
 import * as React from "react";
-import { Link } from "expo-router";
+import { Link, useRouter } from "expo-router";
+import { Alert } from "react-native";
 import {
   SafeAreaView,
   ScrollView,
@@ -9,7 +10,10 @@ import {
   Image,
   StyleSheet,
   useWindowDimensions,
+  Platform,
 } from "react-native";
+import { useAuth } from "@/auth/AuthContext";
+import { useAdminContext } from "@/auth/AdminContext";
 
 const BG = "#0B1313";
 const PANEL = "#0E1717";
@@ -19,16 +23,41 @@ const MUTED = "rgba(255,255,255,0.72)";
 
 export default function HomeScreen() {
   const { width } = useWindowDimensions();
-  const isWide = width >= 900;   // desktop
-  const isMobile = width < 600;  // mobile
+  const isWide = width >= 900; // simple responsive tweak for web
+  const router = useRouter();
+  const { user, logout } = useAuth();
+
+  const handleNavLogin = (which = "primary") => {
+    console.log("[nav] handleNavLogin called from", which);
+    // Show a native alert so the user sees something even if Metro logs aren't visible
+    try {
+      Alert.alert("Debug", `Login pressed (${which})`, [{ text: "OK" }]);
+    } catch (e) {
+      console.log("[nav] Alert failed", e);
+    }
+    // Attempt navigation as well
+    try {
+      router.push("/login");
+    } catch (e) {
+      console.log("[nav] router.push failed", e);
+    }
+  };
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+      Alert.alert("Success", "You have been logged out");
+      router.replace("/(tabs)");
+    } catch (error) {
+      console.error("Logout error:", error);
+    }
+  };
 
   return (
     <SafeAreaView style={styles.safe}>
       <ScrollView
-        contentContainerStyle={[
-          styles.container,
-          isMobile && styles.containerMobile,
-        ]}
+        contentContainerStyle={styles.container}
+        contentInsetAdjustmentBehavior="automatic"
       >
         {/* NAVBAR */}
         <View style={styles.nav}>
@@ -36,47 +65,39 @@ export default function HomeScreen() {
             <View style={styles.logoFlame} />
             <Text style={styles.brand}>GAEL&apos;S CRAVES</Text>
           </View>
-
-          <View style={[styles.navRight, isMobile && styles.navRightMobile]}>
-            <Link href="/" asChild>
-              <Pressable>
-                <Text style={[styles.navLink, isMobile && styles.navLinkMobile]}>
-                  Home
-                </Text>
-              </Pressable>
-            </Link>
-
-            <Link href="/about" asChild>
-              <Pressable>
-                <Text style={[styles.navLink, isMobile && styles.navLinkMobile]}>
-                  About
-                </Text>
-              </Pressable>
-            </Link>
-
-            {/* <Link href="/basket" asChild>
-              <Pressable>
-                <Text style={[styles.navLink, isMobile && styles.navLinkMobile]}>
-                  Basket
-                </Text>
-              </Pressable>
-            </Link> */}
-
-            <Link href="/contact" asChild>
-              <Pressable>
-                <Text style={[styles.navLink, isMobile && styles.navLinkMobile]}>
-                  Contact us
-                </Text>
-              </Pressable>
-            </Link>
-
-            <Link href="/login" asChild>
+          <View style={styles.navRight}>
+            <Text style={styles.navLink}>Home</Text>
+            <Text style={styles.navLink}>About</Text>
+            <Text style={styles.navLink}>Menu</Text>
+            <Text style={styles.navLink}>Contact us</Text>
+            
+            {user ? (
               <Pressable
-                style={isMobile ? styles.viewBasketBtnMobile : styles.viewBasketBtn}
+                style={styles.logoutBtn}
+                onPress={handleLogout}
               >
-                <Text style={styles.viewBasketText}>LOGIN</Text>
+                <Text style={styles.logoutText}>LOGOUT</Text>
               </Pressable>
-            </Link>
+            ) : (
+              <>
+                {Platform.OS === "web" ? (
+                  <Link href="/login" asChild>
+                    <Pressable style={styles.viewMenuBtn}>
+                      <Text style={styles.viewMenuText}>LOGIN</Text>
+                    </Pressable>
+                  </Link>
+                ) : (
+                  <Pressable
+                    style={styles.viewMenuBtn}
+                    android_ripple={{ color: "rgba(0,0,0,0.1)" }}
+                    onPress={() => handleNavLogin("nav-right")}
+                    testID="nav-login-right"
+                  >
+                    <Text style={styles.viewMenuText}>LOGIN</Text>
+                  </Pressable>
+                )}
+              </>
+            )}
           </View>
         </View>
 
@@ -98,12 +119,9 @@ export default function HomeScreen() {
             ]}
           >
             <Text style={styles.eyebrow}>Crafted with passion</Text>
-            <Text style={[styles.h1, isMobile && styles.h1Mobile]}>
-              Where <Text style={styles.accent}>Cravings</Text>
-              {"\n"}
-              Meet Their Perfect
-              {"\n"}
-              Match
+            <Text style={styles.h1}>
+              Where <Text style={styles.accent}>Cravings</Text> Meet Their
+              Perfect Match
             </Text>
             <Text style={[styles.sub, isMobile && styles.subMobile]}>
               Discover bold flavors and unforgettable dishes in a place where
@@ -120,41 +138,15 @@ export default function HomeScreen() {
           </View>
 
           {/* Right imagery */}
-          <View
-            style={[
-              styles.heroRight,
-              { flex: isWide ? 1 : undefined },
-              isMobile && styles.heroRightMobile,
-            ]}
-          >
-            <View
-              style={[styles.dishStage, isMobile && styles.dishStageMobile]}
-            >
+          <View style={[styles.heroRight, { flex: isWide ? 1 : undefined }]}>
+            <View style={styles.dishStage}>
+              <Image style={[styles.dish, styles.dishTop]} resizeMode="cover" />
               <Image
-                // source={{ uri: "link goes here" }}
-                style={[
-                  styles.dish,
-                  isMobile && styles.dishMobile,
-                  styles.dishTop,
-                ]}
+                style={[styles.dish, styles.dishBottomLeft]}
                 resizeMode="cover"
               />
               <Image
-                // source={{ uri: "link goes here" }}
-                style={[
-                  styles.dish,
-                  isMobile && styles.dishMobile,
-                  styles.dishBottomLeft,
-                ]}
-                resizeMode="cover"
-              />
-              <Image
-                // source={{ uri: "link goes here" }}
-                style={[
-                  styles.dish,
-                  isMobile && styles.dishMobile,
-                  styles.dishBottomRight,
-                ]}
+                style={[styles.dish, styles.dishBottomRight]}
                 resizeMode="cover"
               />
             </View>
@@ -169,6 +161,9 @@ export default function HomeScreen() {
             reserved.
           </Text>
         </View>
+
+        {/* Extra padding for tab bar on Android */}
+        {Platform.OS === "android" && <View style={{ height: 80 }} />}
       </ScrollView>
     </SafeAreaView>
   );
@@ -176,13 +171,9 @@ export default function HomeScreen() {
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: BG },
-
   container: {
     paddingHorizontal: 20,
-    paddingBottom: 40,
-  },
-  containerMobile: {
-    paddingHorizontal: 12,
+    paddingBottom: Platform.OS === "android" ? 100 : 40,
   },
 
   // NAV
@@ -224,6 +215,49 @@ const styles = StyleSheet.create({
   },
   viewBasketText: { color: "#1b1b1b", fontWeight: "800" },
 
+  // User section
+  userSection: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  adminButton: {
+    backgroundColor: PEACH,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 6,
+  },
+  adminButtonText: {
+    color: "#1b1b1b",
+    fontSize: 12,
+    fontWeight: "800",
+  },
+  welcomeText: {
+    color: TEXT,
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  adminBadge: {
+    backgroundColor: PEACH,
+    color: "#1b1b1b",
+    fontSize: 10,
+    fontWeight: "800",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 4,
+  },
+  logoutBtn: {
+    backgroundColor: PEACH,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    borderRadius: 8,
+  },
+  logoutText: {
+    color: "#1b1b1b",
+    fontSize: 12,
+    fontWeight: "800",
+  },
+
   // HERO
   heroCard: {
     marginTop: 8,
@@ -252,7 +286,7 @@ const styles = StyleSheet.create({
     lineHeight: 62,
     fontWeight: "800",
     marginBottom: 14,
-    fontFamily: "Georgia, Times New Roman, serif", // web serif fallback
+    fontFamily: "Georgia, Times New Roman, serif",
   },
   h1Mobile: {
     fontSize: 32,
