@@ -6,7 +6,10 @@ import { useAuth } from "@/auth/AuthContext";
 import Constants from "expo-constants";
 
 const extra = (Constants.expoConfig && Constants.expoConfig.extra) || (Constants.manifest && Constants.manifest.extra) || {};
-const GOOGLE_CLIENT_ID = extra.GOOGLE_CLIENT_ID;
+// Only use platform-specific IDs from app.config.js -> .env
+const GOOGLE_WEB_CLIENT_ID = extra.GOOGLE_WEB_CLIENT_ID;
+const GOOGLE_ANDROID_CLIENT_ID = extra.GOOGLE_ANDROID_CLIENT_ID;
+const GOOGLE_IOS_CLIENT_ID = extra.GOOGLE_IOS_CLIENT_ID;
 const API_BASE = extra.API_BASE || 'http://localhost:8080';
 
 
@@ -25,10 +28,10 @@ export function useGoogleLogin() {
   console.log('[googleAuth] chosen redirectUri=', redirectUri, 'useProxy=', useProxy);
 
   const [request, response, promptAsync] = Google.useAuthRequest({
-    clientId: GOOGLE_CLIENT_ID,
-    iosClientId: GOOGLE_CLIENT_ID,
-    androidClientId: GOOGLE_CLIENT_ID,
-    webClientId: GOOGLE_CLIENT_ID,
+    // Provide platform-specific IDs; web requires webClientId specifically
+    webClientId: GOOGLE_WEB_CLIENT_ID,
+    androidClientId: GOOGLE_ANDROID_CLIENT_ID,
+    iosClientId: GOOGLE_IOS_CLIENT_ID,
     redirectUri,
     responseType: "code",
     scopes: ["openid", "profile", "email"],
