@@ -18,6 +18,20 @@ const MAPPING = {
   'paperplane.fill': 'send',
   'chevron.left.forwardslash.chevron.right': 'code',
   'chevron.right': 'chevron-right',
+  'shield.fill': 'security',
+  'exclamationmark.triangle.fill': 'warning',
+  'clock.fill': 'access-time',
+  'dollarsign.circle.fill': 'attach-money',
+  'bag.fill': 'shopping-bag',
+  'checkmark.circle.fill': 'check-circle',
+  'arrow.right': 'arrow-forward',
+  'book.fill': 'menu-book',
+  'person.2.fill': 'people',
+  'chart.bar.fill': 'bar-chart',
+  'gearshape.fill': 'settings',
+  'list.bullet.rectangle': 'list',
+  'line.3.horizontal': 'menu',
+  'xmark': 'close',
 } as IconMapping;
 
 /**

@@ -1,5 +1,5 @@
 import type { PropsWithChildren, ReactElement } from 'react';
-import { StyleSheet } from 'react-native';
+import { StyleSheet, Platform } from 'react-native';
 import Animated, {
   interpolate,
   useAnimatedRef,
@@ -48,6 +48,7 @@ export default function ParallaxScrollView({
     <Animated.ScrollView
       ref={scrollRef}
       style={{ backgroundColor, flex: 1 }}
+      contentContainerStyle={{ paddingBottom: Platform.OS === 'android' ? 100 : 40 }}
       scrollEventThrottle={16}>
       <Animated.View
         style={[
