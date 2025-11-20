@@ -15,6 +15,12 @@ import {
 import { useAuth } from "@/auth/AuthContext";
 import { useAdminContext } from "@/auth/AdminContext";
 
+const BG = "#0B1313";
+const PANEL = "#0E1717";
+const PEACH = "#E7C4A3";
+const TEXT = "rgba(255,255,255,0.92)";
+const MUTED = "rgba(255,255,255,0.72)";
+
 export default function HomeScreen() {
   const { width } = useWindowDimensions();
   const isWide = width >= 900; // simple responsive tweak for web
@@ -57,7 +63,7 @@ export default function HomeScreen() {
         <View style={styles.nav}>
           <View style={styles.brandRow}>
             <View style={styles.logoFlame} />
-            <Text style={styles.brand}>GAEL'S CRAVES</Text>
+            <Text style={styles.brand}>GAEL&apos;S CRAVES</Text>
           </View>
           <View style={styles.navRight}>
             <Text style={styles.navLink}>Home</Text>
@@ -95,29 +101,39 @@ export default function HomeScreen() {
           </View>
         </View>
 
+
         {/* HERO */}
         <View
           style={[
             styles.heroCard,
+            isMobile && styles.heroCardMobile,
             { flexDirection: isWide ? "row" : "column" },
           ]}
         >
           {/* Left copy */}
-          <View style={[styles.heroLeft, { flex: isWide ? 1 : undefined }]}>
+          <View
+            style={[
+              styles.heroLeft,
+              { flex: isWide ? 1 : undefined },
+              isMobile && styles.heroLeftMobile,
+            ]}
+          >
             <Text style={styles.eyebrow}>Crafted with passion</Text>
             <Text style={styles.h1}>
               Where <Text style={styles.accent}>Cravings</Text> Meet Their
               Perfect Match
             </Text>
-            <Text style={styles.sub}>
+            <Text style={[styles.sub, isMobile && styles.subMobile]}>
               Discover bold flavors and unforgettable dishes in a place where
               every craving is satisfied with the perfect bite, crafted just for
               you.
             </Text>
             <View style={styles.ctaRow}>
+            <Link href="/order" asChild>
               <Pressable style={styles.primaryOutline}>
                 <Text style={styles.primaryOutlineText}>PLACE YOUR ORDER</Text>
               </Pressable>
+            </Link>
             </View>
           </View>
 
@@ -139,9 +155,10 @@ export default function HomeScreen() {
 
         {/* FOOTER (simple) */}
         <View style={styles.footer}>
-          <Text style={styles.footerBrand}>GAEL'S CRAVES</Text>
+          <Text style={styles.footerBrand}>GAEL&apos;S CRAVES</Text>
           <Text style={styles.copy}>
-            © {new Date().getFullYear()} Gael's Craves — All rights reserved.
+            © {new Date().getFullYear()} Gael&apos;s Craves — All rights
+            reserved.
           </Text>
         </View>
 
@@ -151,12 +168,6 @@ export default function HomeScreen() {
     </SafeAreaView>
   );
 }
-
-const BG = "#0B1313";
-const PANEL = "#0E1717";
-const PEACH = "#E7C4A3";
-const TEXT = "rgba(255,255,255,0.92)";
-const MUTED = "rgba(255,255,255,0.72)";
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: BG },
@@ -183,14 +194,26 @@ const styles = StyleSheet.create({
   },
   brand: { color: TEXT, fontSize: 16, fontWeight: "800", letterSpacing: 1 },
   navRight: { flexDirection: "row", alignItems: "center", gap: 18 },
-  navLink: { color: TEXT, opacity: 0.85 },
-  viewMenuBtn: {
+  navRightMobile: {
+    gap: 10,
+  },
+  navLink: { color: TEXT, opacity: 0.85, fontSize: 14 },
+  navLinkMobile: {
+    fontSize: 12,
+  },
+  viewBasketBtn: {
     backgroundColor: PEACH,
     paddingVertical: 10,
     paddingHorizontal: 14,
     borderRadius: 8,
   },
-  viewMenuText: { color: "#1b1b1b", fontWeight: "800" },
+  viewBasketBtnMobile: {
+    backgroundColor: PEACH,
+    paddingVertical: 8,
+    paddingHorizontal: 10,
+    borderRadius: 8,
+  },
+  viewBasketText: { color: "#1b1b1b", fontWeight: "800" },
 
   // User section
   userSection: {
@@ -244,7 +267,13 @@ const styles = StyleSheet.create({
     padding: 24,
     borderRadius: 18,
   },
+  heroCardMobile: {
+    padding: 18,
+  },
   heroLeft: { paddingRight: 16 },
+  heroLeftMobile: {
+    paddingRight: 0,
+  },
   eyebrow: {
     color: PEACH,
     fontWeight: "700",
@@ -259,6 +288,10 @@ const styles = StyleSheet.create({
     marginBottom: 14,
     fontFamily: "Georgia, Times New Roman, serif",
   },
+  h1Mobile: {
+    fontSize: 32,
+    lineHeight: 36,
+  },
   accent: { color: PEACH },
   sub: {
     color: MUTED,
@@ -266,6 +299,10 @@ const styles = StyleSheet.create({
     lineHeight: 22,
     marginTop: 6,
     maxWidth: 680,
+  },
+  subMobile: {
+    fontSize: 14,
+    lineHeight: 20,
   },
   ctaRow: { flexDirection: "row", gap: 12, marginTop: 18 },
   primaryOutline: {
@@ -279,6 +316,10 @@ const styles = StyleSheet.create({
 
   // Right imagery
   heroRight: { marginTop: 24 },
+  heroRightMobile: {
+    marginTop: 32,
+    alignItems: "center",
+  },
   dishStage: {
     height: 360,
     borderRadius: 16,
@@ -286,6 +327,9 @@ const styles = StyleSheet.create({
     position: "relative",
     justifyContent: "center",
     alignItems: "center",
+  },
+  dishStageMobile: {
+    height: 260,
   },
   dish: {
     width: 220,
@@ -297,6 +341,12 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.35,
     shadowOffset: { width: 0, height: 8 },
     shadowRadius: 16,
+  },
+  dishMobile: {
+    width: 150,
+    height: 150,
+    borderRadius: 75,
+    borderWidth: 4,
   },
   dishTop: { position: "absolute", top: 0, right: 40 },
   dishBottomLeft: { position: "absolute", bottom: 0, left: 20 },
