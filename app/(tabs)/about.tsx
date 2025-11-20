@@ -1,4 +1,5 @@
-import * as React from 'react';
+import * as React from "react";
+import { Link } from "expo-router";
 import {
   SafeAreaView,
   ScrollView,
@@ -8,60 +9,122 @@ import {
   Image,
   StyleSheet,
   useWindowDimensions,
-} from 'react-native';
+} from "react-native";
 
-const BG = '#0B1313';
-const PANEL = '#0E1717';
-const PEACH = '#E7C4A3';
-const TEXT = 'rgba(255,255,255,0.92)';
-const MUTED = 'rgba(255,255,255,0.72)';
+const BG = "#0B1313";
+const PANEL = "#0E1717";
+const PEACH = "#E7C4A3";
+const TEXT = "rgba(255,255,255,0.92)";
+const MUTED = "rgba(255,255,255,0.72)";
 
 export default function AboutScreen() {
   const { width } = useWindowDimensions();
-  const isWide = width >= 1000;
+  const isWide = width >= 1000;   // layout row vs column
+  const isMobile = width < 600;   // phone-ish
 
   return (
     <SafeAreaView style={styles.safe}>
-      <ScrollView contentContainerStyle={styles.container}>
+      <ScrollView
+        contentContainerStyle={[
+          styles.container,
+          isMobile && styles.containerMobile,
+        ]}
+      >
         {/* NAVBAR */}
         <View style={styles.nav}>
-          <View style={styles.brandRow}>
-            <View style={styles.logoFlame} />
-            <Text style={styles.brand}>GAEL'S CRAVES</Text>
-          </View>
-          <View style={styles.navRight}>
-            <Text style={styles.navLink}>Home</Text>
-            <Text style={[styles.navLink, styles.navLinkActive]}>About</Text>
-            <Text style={styles.navLink}>Menu</Text>
-            <Text style={styles.navLink}>Contact us</Text>
-            <Pressable style={styles.loginBtn}>
+            <View style={styles.brandRow}>
+                <View style={styles.logoFlame} />
+                <Text style={styles.brand}>GAEL&apos;S CRAVES</Text>
+            </View>
+            <View style={[styles.navRight, isMobile && styles.navRightMobile]}>
+                <Link href="/" asChild>
+                <Pressable>
+                    <Text style={[styles.navLink, isMobile && styles.navLinkMobile]}>
+                    Home
+                    </Text>
+                </Pressable>
+                </Link>
+
+                <Link href="/about" asChild>
+                <Pressable>
+                    <Text
+                    style={[
+                        styles.navLink,
+                        styles.navLinkActive,
+                        isMobile && styles.navLinkMobile,
+                    ]}
+                    >
+                    About
+                    </Text>
+                </Pressable>
+                </Link>
+
+                {/* <Link href="/basket" asChild>
+                <Pressable>
+                    <Text style={[styles.navLink, isMobile && styles.navLinkMobile]}>
+                    Basket
+                    </Text>
+                </Pressable>
+                </Link> */}
+
+                <Link href="/contact" asChild>
+                <Pressable>
+                    <Text style={[styles.navLink, isMobile && styles.navLinkMobile]}>
+                    Contact us
+                    </Text>
+                </Pressable>
+                </Link>
+            <Pressable
+              style={isMobile ? styles.loginBtnMobile : styles.loginBtn}
+            >
               <Text style={styles.loginText}>LOGIN</Text>
             </Pressable>
           </View>
         </View>
 
         {/* HERO / INTRO */}
-        <View style={[styles.panel, { flexDirection: isWide ? 'row' : 'column' }]}>
+        <View
+          style={[
+            styles.panel,
+            isMobile && styles.panelMobile,
+            { flexDirection: isWide ? "row" : "column" },
+          ]}
+        >
           {/* Left copy */}
-          <View style={[styles.col, { flex: isWide ? 1.1 : undefined }]}>
+          <View
+            style={[
+              styles.col,
+              { flex: isWide ? 1.1 : undefined },
+              isMobile && styles.colMobile,
+            ]}
+          >
             <Text style={styles.eyebrow}>Why choose us</Text>
-            <Text style={styles.h1}>
-              Your Favorite Meals{'\n'}
+            <Text style={[styles.h1, isMobile && styles.h1Mobile]}>
+              Your Favorite Meals{"\n"}
               <Text style={styles.accent}>That Meet Your Protein Goals</Text>
             </Text>
-            <Text style={styles.sub}>
-              Food is a journey of flavors that connect people and create joy. We deliver fresh
-              and unforgettable meals crafted with passion and detail for the perfect bite.
+            <Text style={[styles.sub, isMobile && styles.subMobile]}>
+              Food is a journey of flavors that connect people and create joy.
+              We deliver fresh and unforgettable meals crafted with passion and
+              detail for the perfect bite.
             </Text>
             <View style={styles.ctaRow}>
-              <Pressable style={styles.primaryOutline}>
+            <Link href="/order" asChild>
+                <Pressable style={styles.primaryOutline}>
                 <Text style={styles.primaryOutlineText}>PLACE YOUR ORDER</Text>
-              </Pressable>
+                </Pressable>
+            </Link>
             </View>
           </View>
 
           {/* Right visuals: badge + collage */}
-          <View style={[styles.col, { flex: isWide ? 1 : undefined }]}>
+          <View
+            style={[
+              styles.col,
+              { flex: isWide ? 1 : undefined },
+              isMobile && styles.colMobileRight,
+            ]}
+          >
             <View style={styles.visualStage}>
               {/* Badge */}
               <View style={styles.badgeWrap}>
@@ -73,12 +136,12 @@ export default function AboutScreen() {
 
               {/* Collage */}
               <Image
-                //source={{ uri: 'link goes here' }}
+                // source={{ uri: "link goes here" }}
                 style={[styles.cardImg, styles.cardImgMain]}
                 resizeMode="cover"
               />
               <Image
-                //source={{ uri: 'link goes here' }}
+                // source={{ uri: "link goes here" }}
                 style={[styles.cardImg, styles.cardImgInset]}
                 resizeMode="cover"
               />
@@ -87,73 +150,127 @@ export default function AboutScreen() {
         </View>
 
         {/* FEATURES ROW */}
-        <View style={styles.panel}>
+        <View
+          style={[
+            styles.panel,
+            isMobile && styles.panelMobile,
+          ]}
+        >
           <Text style={styles.centerEyebrow}>WHY CHOOSE US</Text>
-          <Text style={styles.centerTitle}>
-            We Provide Elegant Service{'\n'}for People
+          <Text style={[styles.centerTitle, isMobile && styles.centerTitleMobile]}>
+            We Provide Elegant Service{"\n"}for People
           </Text>
 
-          <View style={[styles.featuresRow, { flexDirection: isWide ? 'row' : 'column' }]}>
+          <View
+            style={[
+              styles.featuresRow,
+              { flexDirection: isWide ? "row" : "column" },
+            ]}
+          >
             {FEATURES.map((f, i) => (
               <View
                 key={i}
                 style={[
                   styles.featureItem,
-                  i !== FEATURES.length - 1 && isWide ? styles.featureDivider : null,
+                  i !== FEATURES.length - 1 && isWide
+                    ? styles.featureDivider
+                    : null,
                 ]}
               >
                 <View style={styles.iconCircle} />
                 <Text style={styles.featureTitle}>{f.title}</Text>
-                <Text style={styles.featureBody}>{f.body}</Text>
+                <Text style={[styles.featureBody, isMobile && styles.featureBodyMobile]}>
+                  {f.body}
+                </Text>
               </View>
             ))}
           </View>
         </View>
 
         {/* STORY SECTION 1 */}
-        <View style={[styles.storyWrap, { flexDirection: isWide ? 'row' : 'column' }]}>
-          <View style={[styles.storyMediaCol, { flex: isWide ? 1 : undefined }]}>
+        <View
+          style={[
+            styles.storyWrap,
+            isMobile && styles.storyWrapMobile,
+            { flexDirection: isWide ? "row" : "column" },
+          ]}
+        >
+          <View
+            style={[
+              styles.storyMediaCol,
+              { flex: isWide ? 1 : undefined },
+            ]}
+          >
             <Image
-              //source={{ uri: 'link goes here' }}
+              // source={{ uri: "link goes here" }}
               style={styles.storyImg}
               resizeMode="cover"
             />
           </View>
-          <View style={[styles.storyTextCol, { flex: isWide ? 1 : undefined }]}>
-            <Text style={styles.storyTitle}>The First Spark</Text>
-            <Text style={styles.storyBody}>
-              It all started during a gym session when we realized how much joy food brings to
-              people. Surrounded by those who want to reach their protein goals, we saw the power of a delicious meal. That’s when the idea
-              struck, to build a place where cravings meet their perfect match.  
+          <View
+            style={[
+              styles.storyTextCol,
+              { flex: isWide ? 1 : undefined },
+            ]}
+          >
+            <Text style={[styles.storyTitle, isMobile && styles.storyTitleMobile]}>
+              The First Spark
+            </Text>
+            <Text style={[styles.storyBody, isMobile && styles.storyBodyMobile]}>
+              It all started during a gym session when we realized how much joy
+              food brings to people. Surrounded by those who want to reach their
+              protein goals, we saw the power of a delicious meal. That’s when
+              the idea struck, to build a place where cravings meet their
+              perfect match.
             </Text>
           </View>
         </View>
 
         {/* STORY SECTION 2 (mirrored) */}
-        <View style={[styles.storyWrap, { flexDirection: isWide ? 'row-reverse' : 'column' }]}>
-          <View style={[styles.storyMediaCol, { flex: isWide ? 1 : undefined }]}>
+        <View
+          style={[
+            styles.storyWrap,
+            isMobile && styles.storyWrapMobile,
+            { flexDirection: isWide ? "row-reverse" : "column" },
+          ]}
+        >
+          <View
+            style={[
+              styles.storyMediaCol,
+              { flex: isWide ? 1 : undefined },
+            ]}
+          >
             {/* Faux “arch” look */}
             <Image
-              //source={{ uri: 'link goes here' }}
+              // source={{ uri: "link goes here" }}
               style={[styles.storyImg, styles.archImg]}
               resizeMode="cover"
             />
           </View>
-          <View style={[styles.storyTextCol, { flex: isWide ? 1 : undefined }]}>
-            <Text style={styles.storyTitle}>The First Chef</Text>
-            <Text style={styles.storyBody}>
-              Our journey began with a simple yet bold idea, but it needed a culinary expert to bring it
-              to life. Enter our chef, a passionate innovator who shares our vision of crafting dishes
-              that tell a story, rooted in reaching your fitness goals with modern flavor.
+          <View
+            style={[
+              styles.storyTextCol,
+              { flex: isWide ? 1 : undefined },
+            ]}
+          >
+            <Text style={[styles.storyTitle, isMobile && styles.storyTitleMobile]}>
+              The First Chef
+            </Text>
+            <Text style={[styles.storyBody, isMobile && styles.storyBodyMobile]}>
+              Our journey began with a simple yet bold idea, but it needed a
+              culinary expert to bring it to life. Enter our chef, a passionate
+              innovator who shares our vision of crafting dishes that tell a
+              story, rooted in reaching your fitness goals with modern flavor.
             </Text>
           </View>
         </View>
 
         {/* FOOTER */}
         <View style={styles.footer}>
-          <Text style={styles.footerBrand}>GAEL'S CRAVES</Text>
+          <Text style={styles.footerBrand}>GAEL&apos;S CRAVES</Text>
           <Text style={styles.copy}>
-            © {new Date().getFullYear()} Gael&apos;s Craves — All rights reserved.
+            © {new Date().getFullYear()} Gael&apos;s Craves — All rights
+            reserved.
           </Text>
         </View>
       </ScrollView>
@@ -162,35 +279,50 @@ export default function AboutScreen() {
 }
 
 const FEATURES = [
-  { title: 'Delicious Food', body: "Our dishes are full of fresh, bold flavors that you'll love and want again." },
-  { title: 'Relaxing', body: 'Enjoy your meal in a cozy and welcoming space for every occasion.' },
-  { title: 'Friendly Service', body: 'Dedicated to a seamless experience from ordering to taking your last bite.' },
-  { title: 'Fresh Ingredients', body: 'We use the best and freshest ingredients in every dish.' },
+  {
+    title: "Delicious Food",
+    body: "Our dishes are full of fresh, bold flavors that you'll love and want again.",
+  },
+  {
+    title: "Relaxing",
+    body: "Enjoy your meal in a cozy and welcoming space for every occasion.",
+  },
+  {
+    title: "Friendly Service",
+    body: "Dedicated to a seamless experience from ordering to taking your last bite.",
+  },
+  {
+    title: "Fresh Ingredients",
+    body: "We use the best and freshest ingredients in every dish.",
+  },
 ];
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: BG },
   container: { paddingHorizontal: 20, paddingBottom: 40 },
+  containerMobile: { paddingHorizontal: 12 },
 
   // Nav
   nav: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     paddingVertical: 16,
   },
-  brandRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  brandRow: { flexDirection: "row", alignItems: "center", gap: 10 },
   logoFlame: {
     width: 18,
     height: 24,
     borderRadius: 4,
     backgroundColor: PEACH,
-    transform: [{ rotate: '8deg' }],
+    transform: [{ rotate: "8deg" }],
     opacity: 0.9,
   },
-  brand: { color: TEXT, fontSize: 16, fontWeight: '800', letterSpacing: 1 },
-  navRight: { flexDirection: 'row', alignItems: 'center', gap: 18 },
-  navLink: { color: TEXT, opacity: 0.85 },
+  brand: { color: TEXT, fontSize: 16, fontWeight: "800", letterSpacing: 1 },
+  navRight: { flexDirection: "row", alignItems: "center", gap: 18 },
+  navRightMobile: { gap: 10 },
+  navLink: { color: TEXT, opacity: 0.85, fontSize: 14 },
+  navLinkMobile: { fontSize: 12 },
   navLinkActive: { color: PEACH },
   loginBtn: {
     backgroundColor: PEACH,
@@ -198,32 +330,62 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     borderRadius: 8,
   },
-  loginText: { color: '#1b1b1b', fontWeight: '800' },
+  loginBtnMobile: {
+    backgroundColor: PEACH,
+    paddingVertical: 8,
+    paddingHorizontal: 10,
+    borderRadius: 8,
+  },
+  loginText: { color: "#1b1b1b", fontWeight: "800" },
 
   // Panels
   panel: {
     marginTop: 10,
     backgroundColor: PANEL,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
+    borderColor: "rgba(255,255,255,0.08)",
     padding: 24,
     borderRadius: 18,
+  },
+  panelMobile: {
+    padding: 18,
   },
 
   // Intro/Hero
   col: { paddingRight: 16 },
-  eyebrow: { color: PEACH, fontWeight: '700', letterSpacing: 1, marginBottom: 10 },
+  colMobile: { paddingRight: 0 },
+  colMobileRight: { paddingRight: 0, marginTop: 20 },
+  eyebrow: {
+    color: PEACH,
+    fontWeight: "700",
+    letterSpacing: 1,
+    marginBottom: 10,
+  },
   h1: {
     color: TEXT,
     fontSize: 48,
     lineHeight: 54,
-    fontWeight: '800',
+    fontWeight: "800",
     marginBottom: 14,
-    fontFamily: 'Georgia, Times New Roman, serif',
+    fontFamily: "Georgia, Times New Roman, serif",
+  },
+  h1Mobile: {
+    fontSize: 30,
+    lineHeight: 34,
   },
   accent: { color: PEACH },
-  sub: { color: MUTED, fontSize: 16, lineHeight: 22, marginTop: 6, maxWidth: 720 },
-  ctaRow: { flexDirection: 'row', gap: 12, marginTop: 18 },
+  sub: {
+    color: MUTED,
+    fontSize: 16,
+    lineHeight: 22,
+    marginTop: 6,
+    maxWidth: 720,
+  },
+  subMobile: {
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  ctaRow: { flexDirection: "row", gap: 12, marginTop: 18 },
   primaryOutline: {
     borderWidth: 1,
     borderColor: PEACH,
@@ -231,109 +393,127 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     borderRadius: 10,
   },
-  primaryOutlineText: { color: PEACH, fontWeight: '800' },
+  primaryOutlineText: { color: PEACH, fontWeight: "800" },
 
   // Visual collage
-  visualStage: { minHeight: 380, alignItems: 'center', justifyContent: 'center' },
+  visualStage: {
+    minHeight: 380,
+    alignItems: "center",
+    justifyContent: "center",
+  },
   cardImg: {
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
+    borderColor: "rgba(255,255,255,0.08)",
   },
   cardImgMain: { width: 460, height: 240 },
-  cardImgInset: { width: 320, height: 200, position: 'absolute', bottom: -20, left: 40 },
+  cardImgInset: {
+    width: 320,
+    height: 200,
+    position: "absolute",
+    bottom: -20,
+    left: 40,
+  },
 
   // Badge
-  badgeWrap: { position: 'absolute', top: -8, right: 40, zIndex: 2 },
+  badgeWrap: { position: "absolute", top: -8, right: 40, zIndex: 2 },
   badge: {
     borderWidth: 2,
     borderColor: PEACH,
     paddingVertical: 12,
     paddingHorizontal: 18,
     borderRadius: 9999,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'rgba(0,0,0,0.2)',
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(0,0,0,0.2)",
   },
-  badgeBig: { color: PEACH, fontWeight: '900', fontSize: 26 },
+  badgeBig: { color: PEACH, fontWeight: "900", fontSize: 26 },
   badgeSmall: { color: PEACH, opacity: 0.9, fontSize: 12 },
 
   // Features
   centerEyebrow: {
     color: PEACH,
-    textAlign: 'center',
-    fontWeight: '700',
+    textAlign: "center",
+    fontWeight: "700",
     letterSpacing: 1,
     marginBottom: 6,
   },
   centerTitle: {
-    textAlign: 'center',
+    textAlign: "center",
     color: TEXT,
-    fontWeight: '800',
+    fontWeight: "800",
     fontSize: 28,
     lineHeight: 32,
     marginBottom: 18,
-    fontFamily: 'Georgia, Times New Roman, serif',
+    fontFamily: "Georgia, Times New Roman, serif",
+  },
+  centerTitleMobile: {
+    fontSize: 22,
+    lineHeight: 26,
   },
   featuresRow: { gap: 16 },
   featureItem: {
     flex: 1,
-    backgroundColor: '#0F1919',
+    backgroundColor: "#0F1919",
     borderRadius: 12,
     padding: 18,
-    alignItems: 'center',
+    alignItems: "center",
   },
   featureDivider: {
     borderRightWidth: 1,
-    borderRightColor: 'rgba(255,255,255,0.06)',
+    borderRightColor: "rgba(255,255,255,0.06)",
     marginRight: 8,
   },
   iconCircle: {
     width: 42,
     height: 42,
     borderRadius: 21,
-    backgroundColor: 'rgba(231,196,163,0.18)',
+    backgroundColor: "rgba(231,196,163,0.18)",
     marginBottom: 10,
   },
-  featureTitle: { color: TEXT, fontWeight: '800', marginBottom: 6 },
-  featureBody: { color: MUTED, textAlign: 'center' },
+  featureTitle: { color: TEXT, fontWeight: "800", marginBottom: 6 },
+  featureBody: { color: MUTED, textAlign: "center" },
+  featureBodyMobile: { fontSize: 13 },
 
   // Stories
   storyWrap: {
     marginTop: 18,
     backgroundColor: PANEL,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
+    borderColor: "rgba(255,255,255,0.08)",
     borderRadius: 18,
     padding: 20,
   },
+  storyWrapMobile: { padding: 16 },
   storyMediaCol: { padding: 10 },
-  storyTextCol: { padding: 10, justifyContent: 'center' },
+  storyTextCol: { padding: 10, justifyContent: "center" },
   storyImg: {
-    width: '100%',
+    width: "100%",
     height: 300,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
+    borderColor: "rgba(255,255,255,0.08)",
   },
   archImg: { borderTopLeftRadius: 60, borderTopRightRadius: 60 },
   storyTitle: {
     color: PEACH,
     fontSize: 28,
-    fontWeight: '800',
+    fontWeight: "800",
     marginBottom: 10,
-    fontFamily: 'Georgia, Times New Roman, serif',
+    fontFamily: "Georgia, Times New Roman, serif",
   },
+  storyTitleMobile: { fontSize: 24 },
   storyBody: { color: MUTED, fontSize: 16, lineHeight: 22 },
+  storyBodyMobile: { fontSize: 14, lineHeight: 20 },
 
   // Footer
   footer: {
     marginTop: 36,
     paddingTop: 18,
-    borderTopColor: 'rgba(255,255,255,0.08)',
+    borderTopColor: "rgba(255,255,255,0.08)",
     borderTopWidth: 1,
     gap: 6,
   },
-  footerBrand: { color: TEXT, fontWeight: '800' },
-  copy: { color: 'rgba(255,255,255,0.6)', fontSize: 12 },
+  footerBrand: { color: TEXT, fontWeight: "800" },
+  copy: { color: "rgba(255,255,255,0.6)", fontSize: 12 },
 });
