@@ -24,6 +24,7 @@ const MUTED = "rgba(255,255,255,0.72)";
 export default function HomeScreen() {
   const { width } = useWindowDimensions();
   const isWide = width >= 900; // simple responsive tweak for web
+  const isMobile = width < 768;
   const router = useRouter();
   const { user, logout } = useAuth();
 
@@ -70,12 +71,9 @@ export default function HomeScreen() {
             <Text style={styles.navLink}>About</Text>
             <Text style={styles.navLink}>Menu</Text>
             <Text style={styles.navLink}>Contact us</Text>
-            
+
             {user ? (
-              <Pressable
-                style={styles.logoutBtn}
-                onPress={handleLogout}
-              >
+              <Pressable style={styles.logoutBtn} onPress={handleLogout}>
                 <Text style={styles.logoutText}>LOGOUT</Text>
               </Pressable>
             ) : (
@@ -100,7 +98,6 @@ export default function HomeScreen() {
             )}
           </View>
         </View>
-
 
         {/* HERO */}
         <View
@@ -129,11 +126,13 @@ export default function HomeScreen() {
               you.
             </Text>
             <View style={styles.ctaRow}>
-            <Link href="/order" asChild>
-              <Pressable style={styles.primaryOutline}>
-                <Text style={styles.primaryOutlineText}>PLACE YOUR ORDER</Text>
-              </Pressable>
-            </Link>
+              <Link href="/order" asChild>
+                <Pressable style={styles.primaryOutline}>
+                  <Text style={styles.primaryOutlineText}>
+                    PLACE YOUR ORDER
+                  </Text>
+                </Pressable>
+              </Link>
             </View>
           </View>
 
