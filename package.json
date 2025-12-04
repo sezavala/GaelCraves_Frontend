@@ -8,10 +8,17 @@
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web",
+    "build:web": "expo export --platform web",
+    "heroku-postbuild": "expo export --platform web",
+    "serve": "npx serve dist -s -p $PORT",
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
     "lint": "expo lint"
+  },
+  "engines": {
+    "node": "18.x",
+    "npm": "9.x"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.3",
@@ -41,7 +48,8 @@
     "react-native-safe-area-context": "~5.6.0",
     "react-native-screens": "~4.16.0",
     "react-native-web": "~0.21.0",
-    "react-native-worklets": "0.5.1"
+    "react-native-worklets": "0.5.1",
+    "serve": "^14.2.4"
   },
   "devDependencies": {
     "@testing-library/jest-native": "^5.4.3",
