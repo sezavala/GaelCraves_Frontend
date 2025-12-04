@@ -1,5 +1,6 @@
 import * as React from "react";
-import { Link } from "expo-router";
+import { Link, useRouter } from "expo-router";
+import { useAuth } from "@/auth/AuthContext";
 import {
   SafeAreaView,
   ScrollView,
@@ -21,6 +22,15 @@ export default function AboutScreen() {
   const { width } = useWindowDimensions();
   const isWide = width >= 1000;   // layout row vs column
   const isMobile = width < 600;   // phone-ish
+  const { user, logout } = useAuth();
+  const router = useRouter();
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+    } catch {}
+    try { router.replace("/(tabs)"); } catch {}
+  };
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -74,11 +84,20 @@ export default function AboutScreen() {
                     </Text>
                 </Pressable>
                 </Link>
-            <Pressable
-              style={isMobile ? styles.loginBtnMobile : styles.loginBtn}
-            >
-              <Text style={styles.loginText}>LOGIN</Text>
-            </Pressable>
+            {user ? (
+              <Pressable
+                style={isMobile ? styles.loginBtnMobile : styles.loginBtn}
+                onPress={handleLogout}
+              >
+                <Text style={styles.loginText}>LOGOUT</Text>
+              </Pressable>
+            ) : (
+              <Link href="/login" asChild>
+                <Pressable style={isMobile ? styles.loginBtnMobile : styles.loginBtn}>
+                  <Text style={styles.loginText}>LOGIN</Text>
+                </Pressable>
+              </Link>
+            )}
           </View>
         </View>
 

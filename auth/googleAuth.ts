@@ -1,12 +1,20 @@
 import * as Google from "expo-auth-session/providers/google";
+import * as WebBrowser from "expo-web-browser";
 import { useEffect } from "react";
 import { makeRedirectUri } from "expo-auth-session";
 import { Platform } from "react-native";
 import { useAuth } from "@/auth/AuthContext";
 import Constants from "expo-constants";
+import { useRouter } from "expo-router";
+
+// Required for web: completes the auth redirect flow and resolves the response
+WebBrowser.maybeCompleteAuthSession();
 
 const extra = (Constants.expoConfig && Constants.expoConfig.extra) || (Constants.manifest && Constants.manifest.extra) || {};
-const GOOGLE_CLIENT_ID = extra.GOOGLE_CLIENT_ID || '624682753251-1777mu4gr62ajtklkeod1j7hugvafjdb.apps.googleusercontent.com';
+// Only use platform-specific IDs from app.config.js -> .env
+const GOOGLE_WEB_CLIENT_ID = extra.GOOGLE_WEB_CLIENT_ID;
+const GOOGLE_ANDROID_CLIENT_ID = extra.GOOGLE_ANDROID_CLIENT_ID;
+const GOOGLE_IOS_CLIENT_ID = extra.GOOGLE_IOS_CLIENT_ID;
 const API_BASE = extra.API_BASE || 'http://localhost:8080';
 
 console.log('[googleAuth] GOOGLE_CLIENT_ID=', GOOGLE_CLIENT_ID);
@@ -20,6 +28,7 @@ export const NON_PROXY_REDIRECT_URI = makeRedirectUri({
 
 export function useGoogleLogin() {
   const { setUser } = useAuth();
+  const router = useRouter();
   // Use the Expo proxy for native (Expo Go) and a non-proxy redirect for web.
   const useProxy = Platform.OS !== 'web';
 
@@ -28,16 +37,23 @@ export function useGoogleLogin() {
   console.log('[googleAuth] chosen redirectUri=', redirectUri, 'useProxy=', useProxy);
 
   const [request, response, promptAsync] = Google.useAuthRequest({
-    clientId: GOOGLE_CLIENT_ID,
-    iosClientId: GOOGLE_CLIENT_ID,
-    androidClientId: GOOGLE_CLIENT_ID,
-    webClientId: GOOGLE_CLIENT_ID,
+    // Provide platform-specific IDs; web requires webClientId specifically
+    webClientId: GOOGLE_WEB_CLIENT_ID,
+    androidClientId: GOOGLE_ANDROID_CLIENT_ID,
+    iosClientId: GOOGLE_IOS_CLIENT_ID,
     redirectUri,
-    responseType: "code",
+    // Use OIDC id_token on web to avoid client_secret exchange
+    responseType: "id_token" as any,
+    usePKCE: false,
     scopes: ["openid", "profile", "email"],
   });
 
   useEffect(() => {
+    // Debug: show raw response object states
+    if (typeof window !== 'undefined') {
+      console.log('[googleAuth] effect fired. response=', response);
+    }
+
     // Primary path: expo-auth-session provided a response object
     if (response?.type === "success") {
       const params = response.params as { code?: string; id_token?: string };
@@ -58,13 +74,10 @@ export function useGoogleLogin() {
             } catch (e) {
               console.warn("setUser failed", e);
             }
-            if (Platform.OS === "web") {
-              window.localStorage.setItem(
-                "@user",
-                JSON.stringify({ email: emailFromId })
-              );
-              window.location.href = "http://localhost:8081/";
-            }
+            // SPA navigation so state persists and Logout shows
+            try {
+              router.replace("/");
+            } catch {}
             return; // done
           }
         } catch (e) {
@@ -94,10 +107,10 @@ export function useGoogleLogin() {
               profile.emailAddress;
             if (email) {
               setUser({ email });
-              if (Platform.OS === "web") {
-                // Redirect to requested URL on web after login
-                window.location.href = "http://localhost:8081/";
-              }
+              // Navigate to home without reloading
+              try {
+                router.replace("/");
+              } catch {}
             } else {
               console.warn("No email in profile returned by backend", profile);
               console.log("backend profile raw:", profile);
@@ -114,12 +127,31 @@ export function useGoogleLogin() {
       }
     }
 
-    // Secondary path (web): if the browser was redirected back with a ?code= in the URL
-    // but expo-auth-session didn't populate `response`, parse the URL and handle it.
+    // Secondary path (web): if redirected back but no `response`, parse current URL
     if (Platform.OS === "web" && !response) {
       try {
-        const params = new URLSearchParams(window.location.search);
+        const url = new URL(window.location.href);
+        const params = new URLSearchParams(url.search);
+        const hashParams = new URLSearchParams(url.hash.startsWith('#') ? url.hash.slice(1) : url.hash);
         const codeFromUrl = params.get("code");
+        const idTokenFromUrl = params.get("id_token") || hashParams.get("id_token");
+
+        if (idTokenFromUrl && !codeFromUrl) {
+          console.log('[googleAuth] found id_token in URL hash');
+          try {
+            const payload = idTokenFromUrl.split(".")[1];
+            const decoded = JSON.parse(atob(payload.replace(/-/g, "+").replace(/_/g, "/")));
+            const emailFromId = decoded.email || decoded.preferred_username || decoded.sub;
+            if (emailFromId) {
+              setUser({ email: emailFromId });
+              try { router.replace("/"); } catch {}
+              return;
+            }
+          } catch (e) {
+            console.warn('[googleAuth] failed to decode id_token from URL', e);
+          }
+        }
+
         if (codeFromUrl) {
           console.log("[googleAuth] found code in URL -> processing");
           (async () => {
@@ -140,6 +172,9 @@ export function useGoogleLogin() {
                 profile.preferred_email;
               if (email) {
                 setUser({ email });
+                try {
+                  router.replace("/");
+                } catch {}
               } else {
                 console.warn(
                   "No email in profile returned by backend",
@@ -162,6 +197,8 @@ export function useGoogleLogin() {
               console.warn("Failed to send code to backend (url path)", err);
             }
           })();
+        } else {
+          console.log('[googleAuth] no code/id_token in URL to process');
         }
       } catch (e) {
         // ignore parsing errors
