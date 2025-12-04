@@ -1,8 +1,15 @@
 import React, { useEffect, useState } from "react";
-import { StyleSheet, View, Pressable, ScrollView, Platform, SafeAreaView, Text } from "react-native";
+import { StyleSheet, View, Pressable, ScrollView, Platform, SafeAreaView, Text, Alert } from "react-native";
 import { useRouter } from "expo-router";
 import { useAdminContext } from "@/auth/AdminContext";
 import { IconSymbol } from "@/components/ui/icon-symbol";
+import { useAuth as useAuthContext } from "@/auth/AuthContext";
+import {
+  getAdminStats,
+  getAllOrders,
+  Order,
+  updateOrderStatus,
+} from "@/services/adminService";
 
 // Colors matching home page
 const BG = "#0B1313";
@@ -15,15 +22,16 @@ const BORDER = "rgba(255,255,255,0.08)";
 export default function AdminScreen() {
   const { isAdmin } = useAdminContext();
   const router = useRouter();
+  const { user } = useAuthContext();
   const [menuOpen, setMenuOpen] = useState(false);
-
-  // Mock stats - replace with real data from your backend
   const [stats, setStats] = useState({
-    pendingOrders: 12,
-    todayRevenue: 1247.50,
-    totalUsers: 348,
-    menuItems: 67,
+    pendingOrders: 0,
+    todayRevenue: 0,
+    totalUsers: 0,
+    menuItems: 0,
   });
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (!isAdmin) {
@@ -33,6 +41,49 @@ export default function AdminScreen() {
       return () => clearTimeout(timer);
     }
   }, [isAdmin, router]);
+
+  // Load orders and stats when admin is available
+  useEffect(() => {
+    if (!isAdmin) return;
+
+    const load = async () => {
+      try {
+        setLoading(true);
+        const [statsData, ordersData] = await Promise.all([
+          getAdminStats(),
+          getAllOrders(),
+        ]);
+        setStats(statsData);
+        setOrders(ordersData);
+      } catch (e: any) {
+        console.error("Failed to load admin data", e);
+        Alert.alert("Error", e.message || "Failed to load admin data");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    load();
+  }, [isAdmin]);
+
+  const handleUpdateStatus = async (
+    orderId: number,
+    action: "CONFIRMED" | "CANCELLED"
+  ) => {
+    try {
+      const updated = await updateOrderStatus(orderId, action);
+      const nextOrders = orders.map((o) =>
+        o.orderId === orderId ? { ...o, status: updated.status } : o
+      );
+      setOrders(nextOrders);
+  // Refresh stats after status change
+  const latestStats = await getAdminStats();
+  setStats(latestStats);
+    } catch (e: any) {
+      console.error("Failed to update order status", e);
+      Alert.alert("Error", e.message || "Failed to update order status");
+    }
+  };
 
   if (!isAdmin) {
     return (
@@ -158,10 +209,67 @@ export default function AdminScreen() {
             <View style={[styles.statIconContainer, { backgroundColor: PEACH }]}>
               <IconSymbol name="dollarsign.circle.fill" size={20} color={BG} />
             </View>
-            <Text style={styles.statValue}>${stats.todayRevenue}</Text>
+            <Text style={styles.statValue}>${stats.todayRevenue.toFixed(2)}</Text>
             <Text style={styles.statLabel}>Today's Revenue</Text>
           </View>
         </View>
+
+        {/* Incoming / Recent Orders */}
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>Recent Orders</Text>
+        </View>
+
+        {loading && (
+          <Text style={{ color: MUTED, marginBottom: 8 }}>Loading orders...</Text>
+        )}
+
+        {!loading && orders.length === 0 && (
+          <Text style={{ color: MUTED, marginBottom: 8 }}>
+            No orders found yet.
+          </Text>
+        )}
+
+        {orders.map((order) => (
+          <View key={order.orderId} style={styles.orderCard}>
+            <View style={styles.orderHeaderRow}>
+              <Text style={styles.orderId}>Order #{order.orderId}</Text>
+              <Text style={styles.orderStatus}>{order.status}</Text>
+            </View>
+            <Text style={styles.orderMeta}>
+              Placed: {new Date(order.orderDate).toLocaleString()}
+            </Text>
+            <Text style={styles.orderMeta}>
+              Total: ${Number(order.totalAmount).toFixed(2)}
+            </Text>
+
+            <View style={styles.orderItemsList}>
+              {order.orderItems?.map((item, idx) => (
+                <Text key={idx} style={styles.orderItemText}>
+                  {item.quantity} × {item.name || `Item #${item.foodItemId}`}
+                </Text>
+              ))}
+            </View>
+
+            <View style={styles.orderActionsRow}>
+              {order.status === "PENDING" && (
+                <>
+                  <Pressable
+                    style={[styles.orderBtn, styles.orderAcceptBtn]}
+                    onPress={() => handleUpdateStatus(order.orderId, "CONFIRMED")}
+                  >
+                    <Text style={styles.orderBtnText}>ACCEPT</Text>
+                  </Pressable>
+                  <Pressable
+                    style={[styles.orderBtn, styles.orderDeclineBtn]}
+                    onPress={() => handleUpdateStatus(order.orderId, "CANCELLED")}
+                  >
+                    <Text style={styles.orderBtnText}>DECLINE</Text>
+                  </Pressable>
+                </>
+              )}
+            </View>
+          </View>
+        ))}
 
         {/* Main Management Cards */}
         <View style={styles.sectionHeader}>
@@ -216,7 +324,7 @@ export default function AdminScreen() {
               pressed && styles.cardPressed,
             ]}
             onPress={() => {
-              // Navigate to menu management
+              router.push("/admin_menu");
             }}
           >
             <View style={styles.cardRow}>
@@ -240,7 +348,7 @@ export default function AdminScreen() {
               pressed && styles.cardPressed,
             ]}
             onPress={() => {
-              // Navigate to user management
+              router.push("/admin_users");
             }}
           >
             <View style={styles.cardRow}>
@@ -264,7 +372,7 @@ export default function AdminScreen() {
               pressed && styles.cardPressed,
             ]}
             onPress={() => {
-              // Navigate to analytics
+              router.push("/admin_analytics");
             }}
           >
             <View style={styles.cardRow}>
@@ -288,7 +396,7 @@ export default function AdminScreen() {
               pressed && styles.cardPressed,
             ]}
             onPress={() => {
-              // Navigate to settings
+              router.push("/admin_settings");
             }}
           >
             <View style={styles.cardRow}>
@@ -680,5 +788,62 @@ const styles = StyleSheet.create({
     color: MUTED,
     opacity: 0.6,
     fontStyle: "italic",
+  },
+
+  // Orders list
+  orderCard: {
+    borderRadius: 16,
+    padding: 16,
+    backgroundColor: PANEL,
+    borderWidth: 1,
+    borderColor: BORDER,
+    marginBottom: 12,
+  },
+  orderHeaderRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: 4,
+  },
+  orderId: {
+    color: TEXT,
+    fontWeight: "700",
+  },
+  orderStatus: {
+    color: PEACH,
+    fontWeight: "700",
+    fontSize: 12,
+  },
+  orderMeta: {
+    color: MUTED,
+    fontSize: 12,
+  },
+  orderItemsList: {
+    marginTop: 8,
+    marginBottom: 10,
+  },
+  orderItemText: {
+    color: TEXT,
+    fontSize: 13,
+  },
+  orderActionsRow: {
+    flexDirection: "row",
+    gap: 10,
+    marginTop: 6,
+  },
+  orderBtn: {
+    flex: 1,
+    paddingVertical: 10,
+    borderRadius: 8,
+    alignItems: "center",
+  },
+  orderAcceptBtn: {
+    backgroundColor: PEACH,
+  },
+  orderDeclineBtn: {
+    backgroundColor: "#ff6b6b",
+  },
+  orderBtnText: {
+    color: "#1b1b1b",
+    fontWeight: "700",
   },
 });

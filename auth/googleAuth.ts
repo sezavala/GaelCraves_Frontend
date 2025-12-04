@@ -6,8 +6,11 @@ import { useAuth } from "@/auth/AuthContext";
 import Constants from "expo-constants";
 
 const extra = (Constants.expoConfig && Constants.expoConfig.extra) || (Constants.manifest && Constants.manifest.extra) || {};
-const GOOGLE_CLIENT_ID = extra.GOOGLE_CLIENT_ID;
+const GOOGLE_CLIENT_ID = extra.GOOGLE_CLIENT_ID || '624682753251-1777mu4gr62ajtklkeod1j7hugvafjdb.apps.googleusercontent.com';
 const API_BASE = extra.API_BASE || 'http://localhost:8080';
+
+console.log('[googleAuth] GOOGLE_CLIENT_ID=', GOOGLE_CLIENT_ID);
+console.log('[googleAuth] API_BASE=', API_BASE);
 
 
 export const PROXY_REDIRECT_URI = makeRedirectUri({ useProxy: true } as any);
