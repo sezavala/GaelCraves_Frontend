@@ -17,6 +17,9 @@ const GOOGLE_ANDROID_CLIENT_ID = extra.GOOGLE_ANDROID_CLIENT_ID;
 const GOOGLE_IOS_CLIENT_ID = extra.GOOGLE_IOS_CLIENT_ID;
 const API_BASE = extra.API_BASE || 'http://localhost:8080';
 
+console.log('[googleAuth] GOOGLE_CLIENT_ID=', GOOGLE_CLIENT_ID);
+console.log('[googleAuth] API_BASE=', API_BASE);
+
 
 export const PROXY_REDIRECT_URI = makeRedirectUri({ useProxy: true } as any);
 export const NON_PROXY_REDIRECT_URI = makeRedirectUri({
