@@ -198,31 +198,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 12,
   },
-  adminButton: {
-    backgroundColor: PEACH,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 6,
-  },
-  adminButtonText: {
-    color: "#1b1b1b",
-    fontSize: 12,
-    fontWeight: "800",
-  },
-  welcomeText: {
-    color: TEXT,
-    fontSize: 14,
-    fontWeight: "600",
-  },
-  adminBadge: {
-    backgroundColor: PEACH,
-    color: "#1b1b1b",
-    fontSize: 10,
-    fontWeight: "800",
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 4,
-  },
   logoutBtn: {
     backgroundColor: PEACH,
     paddingVertical: 10,

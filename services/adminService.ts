@@ -23,6 +23,7 @@ export interface AdminStats {
   pendingOrders: number;
   todayRevenue: number;
   totalUsers: number;
+  totalAdmins: number;
   menuItems: number;
 }
 
@@ -123,6 +124,7 @@ export async function getAdminStats(): Promise<AdminStats> {
     pendingOrders: data.pendingOrders ?? 0,
     todayRevenue: Number(data.todayRevenue ?? 0),
     totalUsers: data.totalUsers ?? 0,
+    totalAdmins: data.totalAdmins ?? 0,
     menuItems: data.menuItems ?? 0,
   };
 }

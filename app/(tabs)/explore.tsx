@@ -1,5 +1,7 @@
 import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
+import { Platform, StyleSheet, View, Text, Pressable } from 'react-native';
+import { Link, useRouter } from 'expo-router';
+import { useAuth } from '@/auth/AuthContext';
 
 import { Collapsible } from '@/components/ui/collapsible';
 import { ExternalLink } from '@/components/external-link';
@@ -10,6 +12,16 @@ import { IconSymbol } from '@/components/ui/icon-symbol';
 import { Fonts } from '@/constants/theme';
 
 export default function TabTwoScreen() {
+  const { user, logout } = useAuth();
+  const router = useRouter();
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+    } catch {}
+    try { router.replace("/(tabs)"); } catch {}
+  };
+
   return (
     <ParallaxScrollView
       headerBackgroundColor={{ light: '#D0D0D0', dark: '#353636' }}
@@ -21,6 +33,19 @@ export default function TabTwoScreen() {
           style={styles.headerImage}
         />
       }>
+      <ThemedView style={styles.authContainer}>
+        {user ? (
+          <Pressable onPress={handleLogout} style={styles.authButton}>
+            <ThemedText style={styles.authButtonText}>LOGOUT</ThemedText>
+          </Pressable>
+        ) : (
+          <Link href="/login" asChild>
+            <Pressable style={styles.authButton}>
+              <ThemedText style={styles.authButtonText}>LOGIN</ThemedText>
+            </Pressable>
+          </Link>
+        )}
+      </ThemedView>
       <ThemedView style={styles.titleContainer}>
         <ThemedText
           type="title"
@@ -108,5 +133,24 @@ const styles = StyleSheet.create({
   titleContainer: {
     flexDirection: 'row',
     gap: 8,
+  },
+  authContainer: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    marginBottom: 16,
+    paddingHorizontal: 16,
+  },
+  authButton: {
+    backgroundColor: '#E7C4A3',
+    paddingHorizontal: 18,
+    paddingVertical: 10,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  authButtonText: {
+    color: '#0B1313',
+    fontWeight: '800',
+    fontSize: 13,
+    letterSpacing: 0.5,
   },
 });

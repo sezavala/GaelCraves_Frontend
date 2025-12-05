@@ -10,16 +10,20 @@ import { useRouter } from "expo-router";
 // Required for web: completes the auth redirect flow and resolves the response
 WebBrowser.maybeCompleteAuthSession();
 
-const extra = (Constants.expoConfig && Constants.expoConfig.extra) || (Constants.manifest && Constants.manifest.extra) || {};
+const extra =
+  (Constants.expoConfig && Constants.expoConfig.extra) ||
+  (Constants.manifest && Constants.manifest.extra) ||
+  {};
 // Only use platform-specific IDs from app.config.js -> .env
 const GOOGLE_WEB_CLIENT_ID = extra.GOOGLE_WEB_CLIENT_ID;
 const GOOGLE_ANDROID_CLIENT_ID = extra.GOOGLE_ANDROID_CLIENT_ID;
 const GOOGLE_IOS_CLIENT_ID = extra.GOOGLE_IOS_CLIENT_ID;
-const API_BASE = extra.API_BASE || 'http://localhost:8080';
+const API_BASE = extra.API_BASE || "http://localhost:8080";
 
-console.log('[googleAuth] GOOGLE_CLIENT_ID=', GOOGLE_CLIENT_ID);
+console.log('[googleAuth] GOOGLE_WEB_CLIENT_ID=', GOOGLE_WEB_CLIENT_ID);
+console.log('[googleAuth] GOOGLE_ANDROID_CLIENT_ID=', GOOGLE_ANDROID_CLIENT_ID);
+console.log('[googleAuth] GOOGLE_IOS_CLIENT_ID=', GOOGLE_IOS_CLIENT_ID);
 console.log('[googleAuth] API_BASE=', API_BASE);
-
 
 export const PROXY_REDIRECT_URI = makeRedirectUri({ useProxy: true } as any);
 export const NON_PROXY_REDIRECT_URI = makeRedirectUri({
@@ -30,11 +34,16 @@ export function useGoogleLogin() {
   const { setUser } = useAuth();
   const router = useRouter();
   // Use the Expo proxy for native (Expo Go) and a non-proxy redirect for web.
-  const useProxy = Platform.OS !== 'web';
+  const useProxy = Platform.OS !== "web";
 
   const redirectUri = makeRedirectUri({ useProxy } as any);
 
-  console.log('[googleAuth] chosen redirectUri=', redirectUri, 'useProxy=', useProxy);
+  console.log(
+    "[googleAuth] chosen redirectUri=",
+    redirectUri,
+    "useProxy=",
+    useProxy
+  );
 
   const [request, response, promptAsync] = Google.useAuthRequest({
     // Provide platform-specific IDs; web requires webClientId specifically
@@ -50,8 +59,8 @@ export function useGoogleLogin() {
 
   useEffect(() => {
     // Debug: show raw response object states
-    if (typeof window !== 'undefined') {
-      console.log('[googleAuth] effect fired. response=', response);
+    if (typeof window !== "undefined") {
+      console.log("[googleAuth] effect fired. response=", response);
     }
 
     // Primary path: expo-auth-session provided a response object
@@ -132,23 +141,31 @@ export function useGoogleLogin() {
       try {
         const url = new URL(window.location.href);
         const params = new URLSearchParams(url.search);
-        const hashParams = new URLSearchParams(url.hash.startsWith('#') ? url.hash.slice(1) : url.hash);
+        const hashParams = new URLSearchParams(
+          url.hash.startsWith("#") ? url.hash.slice(1) : url.hash
+        );
         const codeFromUrl = params.get("code");
-        const idTokenFromUrl = params.get("id_token") || hashParams.get("id_token");
+        const idTokenFromUrl =
+          params.get("id_token") || hashParams.get("id_token");
 
         if (idTokenFromUrl && !codeFromUrl) {
-          console.log('[googleAuth] found id_token in URL hash');
+          console.log("[googleAuth] found id_token in URL hash");
           try {
             const payload = idTokenFromUrl.split(".")[1];
-            const decoded = JSON.parse(atob(payload.replace(/-/g, "+").replace(/_/g, "/")));
-            const emailFromId = decoded.email || decoded.preferred_username || decoded.sub;
+            const decoded = JSON.parse(
+              atob(payload.replace(/-/g, "+").replace(/_/g, "/"))
+            );
+            const emailFromId =
+              decoded.email || decoded.preferred_username || decoded.sub;
             if (emailFromId) {
               setUser({ email: emailFromId });
-              try { router.replace("/"); } catch {}
+              try {
+                router.replace("/");
+              } catch {}
               return;
             }
           } catch (e) {
-            console.warn('[googleAuth] failed to decode id_token from URL', e);
+            console.warn("[googleAuth] failed to decode id_token from URL", e);
           }
         }
 
@@ -198,7 +215,7 @@ export function useGoogleLogin() {
             }
           })();
         } else {
-          console.log('[googleAuth] no code/id_token in URL to process');
+          console.log("[googleAuth] no code/id_token in URL to process");
         }
       } catch (e) {
         // ignore parsing errors

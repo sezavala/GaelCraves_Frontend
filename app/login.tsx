@@ -104,20 +104,6 @@ export default function LoginScreen() {
             </View>
 
             {/* ==========================================
-                 ADMIN TOGGLE CHECKBOX
-                 ========================================== */}
-            <Pressable
-              style={styles.adminToggle}
-              onPress={() => setIsAdmin(!isAdmin)} // Toggle boolean value
-            >
-              <View style={[styles.checkbox, isAdmin && styles.checkboxActive]}>
-                {/* Conditional rendering - only shows checkmark if isAdmin is true */}
-                {isAdmin && <Text style={styles.checkmark}>✓</Text>}
-              </View>
-              <Text style={styles.adminText}>Admin Login</Text>
-            </Pressable>
-
-            {/* ==========================================
                  FORM FIELDS
                  ========================================== */}
             <View style={styles.form}>
@@ -289,12 +275,7 @@ export default function LoginScreen() {
                   <ActivityIndicator color="#1b1b1b" />
                 ) : (
                   <Text style={styles.submitText}>
-                    {/* Ternary operator - condition ? ifTrue : ifFalse */}
-                    {isSignUp
-                      ? "CREATE ACCOUNT"
-                      : isAdmin
-                      ? "ADMIN LOGIN"
-                      : "SIGN IN"}
+                    {isSignUp ? "CREATE ACCOUNT" : "SIGN IN"}
                   </Text>
                 )}
               </Pressable>
@@ -422,36 +403,6 @@ const styles = StyleSheet.create({
   },
   tabTextActive: {
     color: "#1b1b1b",
-  },
-
-  // Admin Toggle
-  adminToggle: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    marginBottom: 20,
-  },
-  checkbox: {
-    width: 20,
-    height: 20,
-    borderWidth: 2,
-    borderColor: BORDER,
-    borderRadius: 4,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  checkboxActive: {
-    backgroundColor: PEACH,
-    borderColor: PEACH,
-  },
-  checkmark: {
-    color: "#1b1b1b",
-    fontWeight: "bold",
-    fontSize: 12,
-  },
-  adminText: {
-    color: TEXT,
-    fontSize: 14,
   },
 
   // Form

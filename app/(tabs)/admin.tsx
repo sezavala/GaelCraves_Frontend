@@ -28,6 +28,7 @@ export default function AdminScreen() {
     pendingOrders: 0,
     todayRevenue: 0,
     totalUsers: 0,
+    totalAdmins: 0,
     menuItems: 0,
   });
   const [orders, setOrders] = useState<Order[]>([]);
@@ -212,6 +213,14 @@ export default function AdminScreen() {
             <Text style={styles.statValue}>${stats.todayRevenue.toFixed(2)}</Text>
             <Text style={styles.statLabel}>Today's Revenue</Text>
           </View>
+
+          <View style={styles.statCard}>
+            <View style={[styles.statIconContainer, { backgroundColor: PEACH }]}>
+              <IconSymbol name="shield.fill" size={20} color={BG} />
+            </View>
+            <Text style={styles.statValue}>{stats.totalAdmins}</Text>
+            <Text style={styles.statLabel}>Total Admins</Text>
+          </View>
         </View>
 
         {/* Incoming / Recent Orders */}
@@ -324,7 +333,7 @@ export default function AdminScreen() {
               pressed && styles.cardPressed,
             ]}
             onPress={() => {
-              router.push("/admin_menu");
+              // Navigate to menu management
             }}
           >
             <View style={styles.cardRow}>
@@ -348,7 +357,7 @@ export default function AdminScreen() {
               pressed && styles.cardPressed,
             ]}
             onPress={() => {
-              router.push("/admin_users");
+              // Navigate to user management
             }}
           >
             <View style={styles.cardRow}>
@@ -372,7 +381,7 @@ export default function AdminScreen() {
               pressed && styles.cardPressed,
             ]}
             onPress={() => {
-              router.push("/admin_analytics");
+              // Navigate to analytics
             }}
           >
             <View style={styles.cardRow}>
@@ -396,7 +405,7 @@ export default function AdminScreen() {
               pressed && styles.cardPressed,
             ]}
             onPress={() => {
-              router.push("/admin_settings");
+              // Navigate to settings
             }}
           >
             <View style={styles.cardRow}>

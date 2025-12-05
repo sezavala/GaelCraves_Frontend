@@ -62,10 +62,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="explore"
         options={{
-          title: "Explore",
-          tabBarIcon: ({ color }) => (
-            <IconSymbol size={28} name="paperplane.fill" color={color} />
-          ),
+          href: null, // Hide from navigation
         }}
       />
       <Tabs.Screen
@@ -83,6 +80,15 @@ export default function TabLayout() {
           title: "Contact",
           tabBarIcon: ({ color }) => (
             <IconSymbol size={28} name="envelope.fill" color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="faq"
+        options={{
+          title: "FAQ",
+          tabBarIcon: ({ color }) => (
+            <IconSymbol size={28} name="questionmark.circle.fill" color={color} />
           ),
         }}
       />

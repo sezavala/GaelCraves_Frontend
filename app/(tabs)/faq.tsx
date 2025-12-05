@@ -9,8 +9,9 @@ import {
   useWindowDimensions,
 } from 'react-native';
 import { Collapsible } from '@/components/ui/collapsible';
-import { Link } from 'expo-router';
+import { Link, useRouter } from 'expo-router';
 import { Pressable } from 'react-native';
+import { useAuth } from '@/auth/AuthContext';
 
 // Theme constants (kept consistent with existing screens)
 const BG = '#0B1313';
@@ -76,8 +77,18 @@ const FAQS: FaqItem[] = [
 export default function FaqScreen() {
   const { width } = useWindowDimensions();
   const isWide = width >= 900;
+  const isMobile = width < 600;
   const [query, setQuery] = React.useState('');
   const [category, setCategory] = React.useState<string | null>(null);
+  const { user, logout } = useAuth();
+  const router = useRouter();
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+    } catch {}
+    try { router.replace("/(tabs)"); } catch {}
+  };
 
   const categories = React.useMemo(() => {
     const all = new Set<string>();
@@ -97,13 +108,56 @@ export default function FaqScreen() {
   return (
     <SafeAreaView style={styles.safe}>
       <ScrollView contentContainerStyle={styles.container}>
-        {/* HEADER / NAV ROW (simple variant) */}
+        {/* HEADER / NAV ROW */}
         <View style={styles.nav}>
           <View style={styles.brandRow}>
             <View style={styles.logoFlame} />
             <Text style={styles.brand}>GAEL'S CRAVES</Text>
           </View>
-          <Text style={styles.navLinkActive}>FAQ</Text>
+          <View style={[styles.navRight, isMobile && styles.navRightMobile]}>
+            <Link href="/" asChild>
+              <Pressable>
+                <Text style={[styles.navLink, isMobile && styles.navLinkMobile]}>
+                  Home
+                </Text>
+              </Pressable>
+            </Link>
+
+            <Link href="/about" asChild>
+              <Pressable>
+                <Text style={[styles.navLink, isMobile && styles.navLinkMobile]}>
+                  About
+                </Text>
+              </Pressable>
+            </Link>
+
+            <Link href="/contact" asChild>
+              <Pressable>
+                <Text style={[styles.navLink, isMobile && styles.navLinkMobile]}>
+                  Contact us
+                </Text>
+              </Pressable>
+            </Link>
+
+            <Text style={[styles.navLink, styles.navLinkActive, isMobile && styles.navLinkMobile]}>
+              FAQ
+            </Text>
+
+            {user ? (
+              <Pressable
+                style={isMobile ? styles.loginBtnMobile : styles.loginBtn}
+                onPress={handleLogout}
+              >
+                <Text style={styles.loginText}>LOGOUT</Text>
+              </Pressable>
+            ) : (
+              <Link href="/login" asChild>
+                <Pressable style={isMobile ? styles.loginBtnMobile : styles.loginBtn}>
+                  <Text style={styles.loginText}>LOGIN</Text>
+                </Pressable>
+              </Link>
+            )}
+          </View>
         </View>
 
         {/* PANEL INTRO */}
@@ -225,7 +279,42 @@ const styles = StyleSheet.create({
     opacity: 0.9,
   },
   brand: { color: TEXT, fontSize: 16, fontWeight: '800', letterSpacing: 1 },
+  navRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 20,
+  },
+  navRightMobile: {
+    gap: 12,
+    flexWrap: 'wrap',
+  },
+  navLink: {
+    color: MUTED,
+    fontWeight: '600',
+    fontSize: 14,
+  },
+  navLinkMobile: {
+    fontSize: 12,
+  },
   navLinkActive: { color: PEACH, fontWeight: '700' },
+  loginBtn: {
+    backgroundColor: PEACH,
+    paddingHorizontal: 18,
+    paddingVertical: 10,
+    borderRadius: 8,
+  },
+  loginBtnMobile: {
+    backgroundColor: PEACH,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+  },
+  loginText: {
+    color: '#0B1313',
+    fontWeight: '800',
+    fontSize: 13,
+    letterSpacing: 0.5,
+  },
   panel: {
     marginTop: 8,
     backgroundColor: PANEL,
