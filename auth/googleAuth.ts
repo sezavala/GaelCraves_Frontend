@@ -77,16 +77,67 @@ export function useGoogleLogin() {
           );
           const emailFromId =
             decoded.email || decoded.preferred_username || decoded.sub;
+          const firstName = decoded.given_name || "";
+          const lastName = decoded.family_name || "";
+          
           if (emailFromId) {
-            try {
-              setUser({ email: emailFromId });
-            } catch (e) {
-              console.warn("setUser failed", e);
-            }
-            // SPA navigation so state persists and Logout shows
-            try {
-              router.replace("/");
-            } catch {}
+            // Send id_token to backend to get or create user and receive JWT
+            (async () => {
+              try {
+                console.log("[googleAuth] Sending id_token to backend for verification");
+                const resp = await fetch(`${API_BASE}/api/v1/auth/google`, {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ 
+                    idToken,
+                    email: emailFromId,
+                    firstName,
+                    lastName
+                  }),
+                });
+                
+                if (!resp.ok) {
+                  console.warn("Backend Google auth failed", resp.status);
+                  // Fallback to minimal user data
+                  setUser({ 
+                    email: emailFromId,
+                    firstName,
+                    lastName
+                  });
+                  router.replace("/");
+                  return;
+                }
+                
+                const userData = await resp.json();
+                console.log("[googleAuth] Received user data from backend:", userData);
+                
+                // Store complete user data with token
+                setUser({
+                  id: userData.userId || userData.id,
+                  email: userData.email || emailFromId,
+                  firstName: userData.firstName || firstName,
+                  lastName: userData.lastName || lastName,
+                  roles: userData.roles || [],
+                  token: userData.token
+                });
+                
+                // Store token separately for API calls
+                if (userData.token && typeof window !== 'undefined') {
+                  window.localStorage.setItem('@token', userData.token);
+                }
+                
+                router.replace("/");
+              } catch (e) {
+                console.warn("Failed to verify with backend", e);
+                // Fallback to minimal user data
+                setUser({ 
+                  email: emailFromId,
+                  firstName,
+                  lastName
+                });
+                router.replace("/");
+              }
+            })();
             return; // done
           }
         } catch (e) {
@@ -107,22 +158,38 @@ export function useGoogleLogin() {
               console.warn("Backend exchange failed", resp.status);
               return;
             }
-            const profile = await resp.json();
-            // Expect at least an email in the returned profile from backend
+            const userData = await resp.json();
+            console.log("[googleAuth] Received user data from backend (code exchange):", userData);
+            
+            // Store complete user data with token
             const email =
-              profile.email ||
-              profile.email_address ||
-              profile.preferred_email ||
-              profile.emailAddress;
+              userData.email ||
+              userData.email_address ||
+              userData.preferred_email ||
+              userData.emailAddress;
+              
             if (email) {
-              setUser({ email });
+              setUser({
+                id: userData.userId || userData.id,
+                email: email,
+                firstName: userData.firstName || "",
+                lastName: userData.lastName || "",
+                roles: userData.roles || [],
+                token: userData.token
+              });
+              
+              // Store token separately for API calls
+              if (userData.token && typeof window !== 'undefined') {
+                window.localStorage.setItem('@token', userData.token);
+              }
+              
               // Navigate to home without reloading
               try {
                 router.replace("/");
               } catch {}
             } else {
-              console.warn("No email in profile returned by backend", profile);
-              console.log("backend profile raw:", profile);
+              console.warn("No email in profile returned by backend", userData);
+              console.log("backend profile raw:", userData);
             }
           } catch (err) {
             console.warn("Failed to send code to backend", err);
@@ -157,11 +224,63 @@ export function useGoogleLogin() {
             );
             const emailFromId =
               decoded.email || decoded.preferred_username || decoded.sub;
+            const firstName = decoded.given_name || "";
+            const lastName = decoded.family_name || "";
+            
             if (emailFromId) {
-              setUser({ email: emailFromId });
-              try {
-                router.replace("/");
-              } catch {}
+              // Send id_token to backend to get or create user and receive JWT
+              (async () => {
+                try {
+                  console.log("[googleAuth] Sending id_token to backend for verification (URL path)");
+                  const resp = await fetch(`${API_BASE}/api/v1/auth/google`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ 
+                      idToken: idTokenFromUrl,
+                      email: emailFromId,
+                      firstName,
+                      lastName
+                    }),
+                  });
+                  
+                  if (!resp.ok) {
+                    console.warn("Backend Google auth failed", resp.status);
+                    setUser({ 
+                      email: emailFromId,
+                      firstName,
+                      lastName
+                    });
+                    router.replace("/");
+                    return;
+                  }
+                  
+                  const userData = await resp.json();
+                  console.log("[googleAuth] Received user data from backend (URL path):", userData);
+                  
+                  setUser({
+                    id: userData.userId || userData.id,
+                    email: userData.email || emailFromId,
+                    firstName: userData.firstName || firstName,
+                    lastName: userData.lastName || lastName,
+                    roles: userData.roles || [],
+                    token: userData.token
+                  });
+                  
+                  if (userData.token && typeof window !== 'undefined') {
+                    window.localStorage.setItem('@token', userData.token);
+                  }
+                  
+                  router.replace("/");
+                } catch (e) {
+                  console.warn("Failed to verify with backend (URL path)", e);
+                  setUser({ 
+                    email: emailFromId,
+                    firstName,
+                    lastName
+                  });
+                  router.replace("/");
+                }
+              })();
               return;
             }
           } catch (e) {
@@ -182,20 +301,35 @@ export function useGoogleLogin() {
                 console.warn("Backend exchange failed", resp.status);
                 return;
               }
-              const profile = await resp.json();
+              const userData = await resp.json();
+              console.log("[googleAuth] Received user data from backend (URL code path):", userData);
+              
               const email =
-                profile.email ||
-                profile.email_address ||
-                profile.preferred_email;
+                userData.email ||
+                userData.email_address ||
+                userData.preferred_email;
+                
               if (email) {
-                setUser({ email });
+                setUser({
+                  id: userData.userId || userData.id,
+                  email: email,
+                  firstName: userData.firstName || "",
+                  lastName: userData.lastName || "",
+                  roles: userData.roles || [],
+                  token: userData.token
+                });
+                
+                if (userData.token && typeof window !== 'undefined') {
+                  window.localStorage.setItem('@token', userData.token);
+                }
+                
                 try {
                   router.replace("/");
                 } catch {}
               } else {
                 console.warn(
                   "No email in profile returned by backend",
-                  profile
+                  userData
                 );
               }
 
