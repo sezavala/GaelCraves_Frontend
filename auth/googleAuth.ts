@@ -18,7 +18,7 @@ const extra =
 const GOOGLE_WEB_CLIENT_ID = extra.GOOGLE_WEB_CLIENT_ID;
 const GOOGLE_ANDROID_CLIENT_ID = extra.GOOGLE_ANDROID_CLIENT_ID;
 const GOOGLE_IOS_CLIENT_ID = extra.GOOGLE_IOS_CLIENT_ID;
-const API_BASE = extra.API_BASE || "http://localhost:8080";
+const API_BASE = extra.API_BASE || "https://gaelcraves-backend-256f85b120e2.herokuapp.com";
 
 console.log('[googleAuth] GOOGLE_WEB_CLIENT_ID=', GOOGLE_WEB_CLIENT_ID);
 console.log('[googleAuth] GOOGLE_ANDROID_CLIENT_ID=', GOOGLE_ANDROID_CLIENT_ID);
