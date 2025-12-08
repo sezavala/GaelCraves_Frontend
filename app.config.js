@@ -7,6 +7,6 @@ export default ({ config }) => ({
     GOOGLE_WEB_CLIENT_ID: process.env.GOOGLE_WEB_CLIENT_ID,
     GOOGLE_ANDROID_CLIENT_ID: process.env.GOOGLE_ANDROID_CLIENT_ID,
     GOOGLE_IOS_CLIENT_ID: process.env.GOOGLE_IOS_CLIENT_ID,
-    API_BASE: process.env.API_BASE || 'http://localhost:8080',
+    API_BASE: process.env.API_BASE || 'https://gaelcraves-backend-256f85b120e2.herokuapp.com',
   },
 });
