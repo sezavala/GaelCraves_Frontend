@@ -1,10 +1,22 @@
 import React, { useEffect, useState } from "react";
-import { StyleSheet, View, Pressable, ScrollView, Platform, SafeAreaView, Text } from "react-native";
+import {
+  StyleSheet,
+  View,
+  Pressable,
+  ScrollView,
+  SafeAreaView,
+  Text,
+  ActivityIndicator,
+} from "react-native";
 import { useRouter } from "expo-router";
 import { useAdminContext } from "@/auth/AdminContext";
 import { IconSymbol } from "@/components/ui/icon-symbol";
+import {
+  getAllOrders,
+  updateOrderStatus,
+  getAdminStats,
+} from "@/services/adminService";
 
-// Colors matching home page
 const BG = "#0B1313";
 const PANEL = "#0E1717";
 const PEACH = "#E7C4A3";
@@ -16,35 +28,65 @@ export default function AdminScreen() {
   const { isAdmin } = useAdminContext();
   const router = useRouter();
   const [menuOpen, setMenuOpen] = useState(false);
-
-  // Mock stats - replace with real data from your backend
   const [stats, setStats] = useState({
-    pendingOrders: 12,
-    todayRevenue: 1247.50,
-    totalUsers: 348,
-    menuItems: 67,
+    pendingOrders: 0,
+    todayRevenue: 0,
+    totalUsers: 0,
+    menuItems: 0,
   });
+  const [orders, setOrders] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!isAdmin) {
-      const timer = setTimeout(() => {
-        router.replace("/(tabs)");
-      }, 2000);
-      return () => clearTimeout(timer);
+      router.replace("/(tabs)");
+      return;
     }
-  }, [isAdmin, router]);
+    loadData();
+  }, [isAdmin]);
+
+  const loadData = async () => {
+    try {
+      setLoading(true);
+      const [ordersData, statsData] = await Promise.all([
+        getAllOrders(),
+        getAdminStats(),
+      ]);
+      setOrders(ordersData);
+      setStats(statsData);
+    } catch (error) {
+      console.error("Failed to load admin data:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleUpdateStatus = async (orderId: number, status: string) => {
+    try {
+      await updateOrderStatus(orderId, status);
+      await loadData();
+    } catch (error) {
+      console.error("Failed to update order:", error);
+    }
+  };
+
+  const handleNavigate = (path: string) => {
+    setMenuOpen(false);
+    router.push(path);
+  };
 
   if (!isAdmin) {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.accessDeniedContainer}>
-          <IconSymbol name="exclamationmark.triangle.fill" size={64} color={PEACH} />
+          <IconSymbol
+            name="exclamationmark.triangle.fill"
+            size={64}
+            color={PEACH}
+          />
           <Text style={styles.accessDeniedTitle}>Access Denied</Text>
           <Text style={styles.accessDeniedText}>
-            You don't have permission to access this page.
-          </Text>
-          <Text style={styles.redirectText}>
-            Redirecting to home...
+            You need administrator privileges to access this page
           </Text>
         </View>
       </SafeAreaView>
@@ -53,201 +95,131 @@ export default function AdminScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Mobile Hamburger Menu for Android */}
-      {Platform.OS === 'android' && (
-        <View style={styles.mobileHeader}>
-          <Pressable 
-            onPress={() => setMenuOpen(!menuOpen)}
-            style={styles.hamburger}
-          >
-            <IconSymbol name="line.3.horizontal" size={24} color={TEXT} />
-          </Pressable>
-          <View style={styles.logoRow}>
-            <View style={styles.logoFlame} />
-            <Text style={styles.mobileTitle}>ADMIN PANEL</Text>
-          </View>
+      {/* Header */}
+      <View style={styles.header}>
+        <View style={styles.headerLeft}>
+          <View style={styles.logoFlame} />
+          <Text style={styles.brand}>ADMIN PANEL</Text>
         </View>
-      )}
+        <Pressable
+          onPress={() => setMenuOpen(!menuOpen)}
+          style={styles.menuButton}
+        >
+          <IconSymbol name="line.3.horizontal" size={24} color={PEACH} />
+        </Pressable>
+      </View>
 
-      {/* Mobile Menu Overlay */}
-      {Platform.OS === 'android' && menuOpen && (
-        <Pressable 
+      {/* Dropdown Menu */}
+      {menuOpen && (
+        <Pressable
           style={styles.menuOverlay}
           onPress={() => setMenuOpen(false)}
         >
-          <View style={styles.menuDrawer}>
-            <View style={styles.menuHeader}>
-              <Text style={styles.menuTitle}>Admin Menu</Text>
-              <Pressable onPress={() => setMenuOpen(false)}>
-                <IconSymbol name="xmark" size={24} color={TEXT} />
-              </Pressable>
-            </View>
-            
-            <View style={styles.menuItems}>
-              <Pressable 
+          <View style={styles.menuPanel}>
+            <View style={styles.menuContent}>
+              <Pressable
                 style={styles.menuItem}
-                onPress={() => {
-                  setMenuOpen(false);
-                  router.push("/(tabs)");
-                }}
+                onPress={() => handleNavigate("/(tabs)")}
               >
                 <IconSymbol name="house.fill" size={20} color={PEACH} />
                 <Text style={styles.menuItemText}>Home</Text>
               </Pressable>
-              
-              <Pressable 
-                style={styles.menuItem} 
-                onPress={() => {
-                  setMenuOpen(false);
-                  router.push("/admin_new");
-                }}
+
+              <Pressable
+                style={styles.menuItem}
+                onPress={() => handleNavigate("/admin")}
               >
                 <IconSymbol name="bag.fill" size={20} color={PEACH} />
-                <Text style={styles.menuItemText}>Orders ({stats.pendingOrders})</Text>
+                <Text style={styles.menuItemText}>
+                  Orders ({stats.pendingOrders})
+                </Text>
               </Pressable>
-              
-              <Pressable 
-                style={styles.menuItem} 
-                onPress={() => {
-                  setMenuOpen(false);
-                  router.push("/admin_menu");
-                }}
+
+              <Pressable
+                style={styles.menuItem}
+                onPress={() => handleNavigate("/(tabs)/explore")}
               >
                 <IconSymbol name="book.fill" size={20} color={PEACH} />
-                <Text style={styles.menuItemText}>Menu ({stats.menuItems})</Text>
+                <Text style={styles.menuItemText}>
+                  Menu ({stats.menuItems})
+                </Text>
               </Pressable>
-              
-              <Pressable 
-                style={styles.menuItem} 
-                onPress={() => {
-                  setMenuOpen(false);
-                  router.push("/admin_users");
-                }}
+
+              <Pressable
+                style={styles.menuItem}
+                onPress={() => handleNavigate("/(tabs)/contact")}
               >
                 <IconSymbol name="person.2.fill" size={20} color={PEACH} />
-                <Text style={styles.menuItemText}>Users ({stats.totalUsers})</Text>
-              </Pressable>
-              
-              <Pressable 
-                style={styles.menuItem} 
-                onPress={() => {
-                  setMenuOpen(false);
-                  router.push("/admin_analytics");
-                }}
-              >
-                <IconSymbol name="chart.bar.fill" size={20} color={PEACH} />
-                <Text style={styles.menuItemText}>Analytics</Text>
-              </Pressable>
-              
-              <Pressable 
-                style={styles.menuItem} 
-                onPress={() => {
-                  setMenuOpen(false);
-                  router.push("/admin_settings");
-                }}
-              >
-                <IconSymbol name="gearshape.fill" size={20} color={PEACH} />
-                <Text style={styles.menuItemText}>Settings</Text>
+                <Text style={styles.menuItemText}>
+                  Contact
+                </Text>
               </Pressable>
             </View>
           </View>
         </Pressable>
       )}
 
-      <ScrollView
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-      >
-        {/* Header */}
-        <View style={styles.header}>
-          <View style={styles.headerTop}>
-            <View>
-              <Text style={styles.greeting}>Welcome back, Owner! 👋</Text>
-              <Text style={styles.subtitle}>
-                Here's what's happening today
-              </Text>
-            </View>
-            <View style={styles.badge}>
-              <IconSymbol name="shield.fill" size={16} color={PEACH} />
-              <Text style={styles.badgeText}>Admin</Text>
-            </View>
-          </View>
-        </View>
-
-        {/* Quick Stats */}
-        <View style={styles.statsContainer}>
-          <View style={styles.statCard}>
-            <View style={[styles.statIconContainer, { backgroundColor: PEACH }]}>
-              <IconSymbol name="clock.fill" size={20} color={BG} />
-            </View>
+      <ScrollView contentContainerStyle={styles.scrollContent}>
+        {/* Stats Grid */}
+        <View style={styles.statsGrid}>
+          <View style={[styles.statCard, { backgroundColor: "#1a2f2f" }]}>
+            <IconSymbol name="bag.fill" size={24} color={PEACH} />
             <Text style={styles.statValue}>{stats.pendingOrders}</Text>
             <Text style={styles.statLabel}>Pending Orders</Text>
           </View>
 
-          <View style={styles.statCard}>
-            <View style={[styles.statIconContainer, { backgroundColor: PEACH }]}>
-              <IconSymbol name="dollarsign.circle.fill" size={20} color={BG} />
-            </View>
-            <Text style={styles.statValue}>${stats.todayRevenue}</Text>
+          <View style={[styles.statCard, { backgroundColor: "#1f2a1a" }]}>
+            <IconSymbol name="dollarsign.circle.fill" size={24} color={PEACH} />
+            <Text style={styles.statValue}>
+              ${stats.todayRevenue.toFixed(2)}
+            </Text>
             <Text style={styles.statLabel}>Today's Revenue</Text>
+          </View>
+
+          <View style={[styles.statCard, { backgroundColor: "#2a1a1f" }]}>
+            <IconSymbol name="person.2.fill" size={24} color={PEACH} />
+            <Text style={styles.statValue}>{stats.totalUsers}</Text>
+            <Text style={styles.statLabel}>Total Users</Text>
+          </View>
+
+          <View style={[styles.statCard, { backgroundColor: "#1a1f2a" }]}>
+            <IconSymbol name="book.fill" size={24} color={PEACH} />
+            <Text style={styles.statValue}>{stats.menuItems}</Text>
+            <Text style={styles.statLabel}>Menu Items</Text>
           </View>
         </View>
 
-        {/* Main Management Cards */}
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Management</Text>
-        </View>
+        {/* Quick Actions */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Quick Actions</Text>
 
-        <View style={styles.cardsContainer}>
-          {/* Orders Management - Primary Focus */}
-          <Pressable
-            style={({ pressed }) => [
-              styles.primaryCard,
-              pressed && styles.cardPressed,
-            ]}
-            onPress={() => {
-              router.push("/admin_new");
-            }}
-          >
-            <View style={styles.primaryCardHeader}>
-              <View style={[styles.cardIconLarge, { backgroundColor: PEACH }]}>
-                <IconSymbol name="bag.fill" size={28} color={BG} />
-              </View>
-              <View style={styles.cardBadge}>
-                <Text style={styles.cardBadgeText}>{stats.pendingOrders} New</Text>
-              </View>
-            </View>
-            <View style={styles.primaryCardContent}>
-              <Text style={styles.primaryCardTitle}>Order Management</Text>
-              <Text style={styles.primaryCardDescription}>
-                View, process, and track all customer orders in real-time
-              </Text>
-              <View style={styles.cardFeatures}>
-                <View style={styles.featureItem}>
-                  <IconSymbol name="checkmark.circle.fill" size={16} color={PEACH} />
-                  <Text style={styles.featureText}>Real-time tracking</Text>
-                </View>
-                <View style={styles.featureItem}>
-                  <IconSymbol name="checkmark.circle.fill" size={16} color={PEACH} />
-                  <Text style={styles.featureText}>Order history</Text>
-                </View>
-              </View>
-            </View>
-            <View style={styles.cardFooter}>
-              <Text style={styles.cardAction}>Manage Orders</Text>
-              <IconSymbol name="arrow.right" size={18} color={PEACH} />
-            </View>
-          </Pressable>
-
-          {/* Menu Management */}
           <Pressable
             style={({ pressed }) => [
               styles.card,
               pressed && styles.cardPressed,
             ]}
-            onPress={() => {
-              router.push("/admin_menu");
-            }}
+            onPress={() => handleNavigate("/order")}
+          >
+            <View style={styles.cardRow}>
+              <View style={[styles.cardIcon, { backgroundColor: PEACH }]}>
+                <IconSymbol name="bag.fill" size={24} color={BG} />
+              </View>
+              <View style={styles.cardContent}>
+                <Text style={styles.cardTitle}>Order Management</Text>
+                <Text style={styles.cardDescription}>
+                  View, process, and track all customer orders in real-time
+                </Text>
+              </View>
+              <IconSymbol name="chevron.right" size={20} color={MUTED} />
+            </View>
+          </Pressable>
+
+          <Pressable
+            style={({ pressed }) => [
+              styles.card,
+              pressed && styles.cardPressed,
+            ]}
+            onPress={() => handleNavigate("/(tabs)/explore")}
           >
             <View style={styles.cardRow}>
               <View style={[styles.cardIcon, { backgroundColor: PEACH }]}>
@@ -256,79 +228,28 @@ export default function AdminScreen() {
               <View style={styles.cardContent}>
                 <Text style={styles.cardTitle}>Menu Management</Text>
                 <Text style={styles.cardDescription}>
-                  {stats.menuItems} items • Add, edit, or remove menu items
+                  Browse and manage menu items
                 </Text>
               </View>
               <IconSymbol name="chevron.right" size={20} color={MUTED} />
             </View>
           </Pressable>
 
-          {/* User Management */}
           <Pressable
             style={({ pressed }) => [
               styles.card,
               pressed && styles.cardPressed,
             ]}
-            onPress={() => {
-              router.push("/admin_users");
-            }}
+            onPress={() => handleNavigate("/(tabs)/about")}
           >
             <View style={styles.cardRow}>
               <View style={[styles.cardIcon, { backgroundColor: PEACH }]}>
                 <IconSymbol name="person.2.fill" size={24} color={BG} />
               </View>
               <View style={styles.cardContent}>
-                <Text style={styles.cardTitle}>User Management</Text>
+                <Text style={styles.cardTitle}>About & Info</Text>
                 <Text style={styles.cardDescription}>
-                  {stats.totalUsers} users • Manage accounts and permissions
-                </Text>
-              </View>
-              <IconSymbol name="chevron.right" size={20} color={MUTED} />
-            </View>
-          </Pressable>
-
-          {/* Analytics */}
-          <Pressable
-            style={({ pressed }) => [
-              styles.card,
-              pressed && styles.cardPressed,
-            ]}
-            onPress={() => {
-              router.push("/admin_analytics");
-            }}
-          >
-            <View style={styles.cardRow}>
-              <View style={[styles.cardIcon, { backgroundColor: PEACH }]}>
-                <IconSymbol name="chart.bar.fill" size={24} color={BG} />
-              </View>
-              <View style={styles.cardContent}>
-                <Text style={styles.cardTitle}>Analytics & Reports</Text>
-                <Text style={styles.cardDescription}>
-                  View sales trends and performance metrics
-                </Text>
-              </View>
-              <IconSymbol name="chevron.right" size={20} color={MUTED} />
-            </View>
-          </Pressable>
-
-          {/* Settings */}
-          <Pressable
-            style={({ pressed }) => [
-              styles.card,
-              pressed && styles.cardPressed,
-            ]}
-            onPress={() => {
-              router.push("/admin_settings");
-            }}
-          >
-            <View style={styles.cardRow}>
-              <View style={[styles.cardIcon, { backgroundColor: PEACH }]}>
-                <IconSymbol name="gearshape.fill" size={24} color={BG} />
-              </View>
-              <View style={styles.cardContent}>
-                <Text style={styles.cardTitle}>Settings</Text>
-                <Text style={styles.cardDescription}>
-                  Configure app settings and preferences
+                  View restaurant information and details
                 </Text>
               </View>
               <IconSymbol name="chevron.right" size={20} color={MUTED} />
@@ -336,27 +257,93 @@ export default function AdminScreen() {
           </Pressable>
         </View>
 
-        {/* Back to Home Button */}
+        {/* Recent Orders */}
+        {loading ? (
+          <ActivityIndicator
+            size="large"
+            color={PEACH}
+            style={{ marginTop: 40 }}
+          />
+        ) : (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Recent Orders</Text>
+            {orders.slice(0, 5).map((order: any) => (
+              <View key={order.orderId} style={styles.orderCard}>
+                <View style={styles.orderHeader}>
+                  <Text style={styles.orderNumber}>Order #{order.orderId}</Text>
+                  <View
+                    style={[
+                      styles.statusBadge,
+                      { backgroundColor: getStatusColor(order.status) },
+                    ]}
+                  >
+                    <Text style={styles.statusText}>{order.status}</Text>
+                  </View>
+                </View>
+                <Text style={styles.orderDate}>
+                  {new Date(order.orderDate).toLocaleString()}
+                </Text>
+                <Text style={styles.orderTotal}>
+                  ${order.totalPrice?.toFixed(2)}
+                </Text>
+                {order.status === "PENDING" && (
+                  <View style={styles.orderActions}>
+                    <Pressable
+                      style={[styles.orderBtn, { backgroundColor: "#4CAF50" }]}
+                      onPress={() =>
+                        handleUpdateStatus(order.orderId, "CONFIRMED")
+                      }
+                    >
+                      <Text style={styles.orderBtnText}>Accept</Text>
+                    </Pressable>
+                    <Pressable
+                      style={[styles.orderBtn, { backgroundColor: "#f44336" }]}
+                      onPress={() =>
+                        handleUpdateStatus(order.orderId, "CANCELLED")
+                      }
+                    >
+                      <Text style={styles.orderBtnText}>Decline</Text>
+                    </Pressable>
+                  </View>
+                )}
+              </View>
+            ))}
+          </View>
+        )}
+
+        {/* Back Button */}
         <Pressable
           style={({ pressed }) => [
             styles.backButton,
             pressed && { opacity: 0.6 },
           ]}
-          onPress={() => router.push("/(tabs)")}
+          onPress={() => handleNavigate("/(tabs)")}
         >
           <IconSymbol name="house.fill" size={18} color={TEXT} />
           <Text style={styles.backButtonText}>Back to Home</Text>
         </Pressable>
-
-        {/* Footer */}
-        <View style={styles.footer}>
-          <Text style={styles.footerText}>
-            GaelCraves Admin Panel v1.0
-          </Text>
-        </View>
       </ScrollView>
     </SafeAreaView>
   );
+}
+
+function getStatusColor(status: string) {
+  switch (status) {
+    case "PENDING":
+      return "#FFA726";
+    case "CONFIRMED":
+      return "#66BB6A";
+    case "PREPARING":
+      return "#42A5F5";
+    case "READY":
+      return "#9CCC65";
+    case "DELIVERED":
+      return "#26A69A";
+    case "CANCELLED":
+      return "#EF5350";
+    default:
+      return MUTED;
+  }
 }
 
 const styles = StyleSheet.create({
@@ -364,272 +351,117 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: BG,
   },
-  scrollContent: {
+  header: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     padding: 20,
-    paddingBottom: 40,
-  },
-  
-  // Mobile Header
-  mobileHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 16,
     borderBottomWidth: 1,
     borderBottomColor: BORDER,
-    gap: 16,
   },
-  hamburger: {
-    padding: 8,
-  },
-  logoRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
+  headerLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
   },
   logoFlame: {
-    width: 18,
-    height: 24,
-    borderRadius: 4,
+    width: 32,
+    height: 32,
+    borderRadius: 8,
     backgroundColor: PEACH,
-    transform: [{ rotate: "8deg" }],
-    opacity: 0.9,
   },
-  mobileTitle: {
-    color: TEXT,
-    fontSize: 16,
+  brand: {
+    fontSize: 20,
     fontWeight: "800",
-    letterSpacing: 1,
+    color: TEXT,
   },
-  
-  // Mobile Menu
+  menuButton: {
+    padding: 8,
+  },
   menuOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    position: "absolute",
+    top: 80,
+    right: 20,
     zIndex: 1000,
   },
-  menuDrawer: {
-    width: '80%',
-    maxWidth: 300,
-    height: '100%',
+  menuPanel: {
     backgroundColor: PANEL,
-    borderRightWidth: 1,
-    borderRightColor: BORDER,
-  },
-  menuHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: BORDER,
-  },
-  menuTitle: {
-    color: TEXT,
-    fontSize: 18,
-    fontWeight: "800",
-  },
-  menuItems: {
-    padding: 16,
-    gap: 8,
-  },
-  menuItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 16,
     borderRadius: 12,
-    backgroundColor: BG,
-    gap: 12,
-  },
-  menuItemText: {
-    color: TEXT,
-    fontSize: 16,
-    fontWeight: "600",
-  },
-  
-  // Header
-  header: {
-    marginBottom: 24,
-    marginTop: Platform.OS === 'android' ? 0 : 20,
-  },
-  headerTop: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    gap: 16,
-  },
-  greeting: {
-    fontSize: 28,
-    fontWeight: "bold",
-    marginBottom: 4,
-    color: TEXT,
-  },
-  subtitle: {
-    fontSize: 16,
-    color: MUTED,
-  },
-  badge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
-    gap: 6,
-    backgroundColor: PANEL,
     borderWidth: 1,
     borderColor: BORDER,
+    minWidth: 200,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
   },
-  badgeText: {
-    fontSize: 12,
-    fontWeight: "600",
-    color: PEACH,
+  menuContent: {
+    padding: 8,
   },
-  
-  // Stats Cards
-  statsContainer: {
-    flexDirection: 'row',
+  menuItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 12,
     gap: 12,
-    marginBottom: 32,
+    borderRadius: 8,
+  },
+  menuItemText: {
+    fontSize: 16,
+    color: TEXT,
+    fontWeight: "500",
+  },
+  scrollContent: {
+    padding: 20,
+  },
+  statsGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 12,
+    marginBottom: 24,
   },
   statCard: {
     flex: 1,
+    minWidth: 150,
     padding: 20,
-    borderRadius: 16,
-    alignItems: 'center',
-    backgroundColor: PANEL,
-    borderWidth: 1,
-    borderColor: BORDER,
-  },
-  statIconContainer: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 12,
+    borderRadius: 12,
+    alignItems: "center",
+    gap: 8,
   },
   statValue: {
-    fontSize: 24,
-    fontWeight: "bold",
-    marginBottom: 4,
+    fontSize: 28,
+    fontWeight: "800",
     color: TEXT,
   },
   statLabel: {
     fontSize: 12,
     color: MUTED,
-    textAlign: 'center',
+    textAlign: "center",
   },
-  
-  // Section Header
-  sectionHeader: {
-    marginBottom: 16,
+  section: {
+    marginBottom: 24,
+    gap: 12,
   },
   sectionTitle: {
     fontSize: 20,
-    fontWeight: "bold",
+    fontWeight: "700",
     color: TEXT,
-  },
-  
-  // Cards Container
-  cardsContainer: {
-    gap: 16,
-    marginBottom: 24,
-  },
-  
-  // Primary Card (Featured)
-  primaryCard: {
-    borderRadius: 20,
-    padding: 20,
-    backgroundColor: PANEL,
-    borderWidth: 1,
-    borderColor: BORDER,
     marginBottom: 8,
   },
-  primaryCardHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  cardIconLarge: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  cardBadge: {
-    backgroundColor: BG,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: BORDER,
-  },
-  cardBadgeText: {
-    fontSize: 12,
-    fontWeight: "600",
-    color: PEACH,
-  },
-  primaryCardContent: {
-    marginBottom: 16,
-  },
-  primaryCardTitle: {
-    fontSize: 22,
-    fontWeight: "bold",
-    marginBottom: 8,
-    color: TEXT,
-  },
-  primaryCardDescription: {
-    fontSize: 15,
-    color: MUTED,
-    lineHeight: 22,
-    marginBottom: 12,
-  },
-  cardFeatures: {
-    gap: 8,
-  },
-  featureItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  featureText: {
-    fontSize: 14,
-    color: MUTED,
-  },
-  cardFooter: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingTop: 16,
-    borderTopWidth: 1,
-    borderTopColor: BORDER,
-  },
-  cardAction: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: PEACH,
-  },
-  
-  // Regular Cards
   card: {
-    borderRadius: 16,
-    padding: 16,
     backgroundColor: PANEL,
+    borderRadius: 12,
+    padding: 16,
     borderWidth: 1,
     borderColor: BORDER,
   },
   cardPressed: {
-    opacity: 0.8,
-    transform: [{ scale: 0.98 }],
+    opacity: 0.7,
   },
   cardRow: {
     flexDirection: "row",
     alignItems: "center",
+    gap: 12,
   },
   cardIcon: {
     width: 48,
@@ -637,55 +469,89 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     alignItems: "center",
     justifyContent: "center",
-    marginRight: 16,
   },
   cardContent: {
     flex: 1,
   },
   cardTitle: {
-    fontSize: 17,
+    fontSize: 16,
     fontWeight: "600",
-    marginBottom: 4,
     color: TEXT,
+    marginBottom: 4,
   },
   cardDescription: {
     fontSize: 14,
     color: MUTED,
-    lineHeight: 20,
   },
-  
-  // Back Button
+  orderCard: {
+    backgroundColor: PANEL,
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: BORDER,
+    gap: 8,
+  },
+  orderHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  orderNumber: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: TEXT,
+  },
+  statusBadge: {
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  statusText: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#fff",
+  },
+  orderDate: {
+    fontSize: 14,
+    color: MUTED,
+  },
+  orderTotal: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: PEACH,
+  },
+  orderActions: {
+    flexDirection: "row",
+    gap: 12,
+    marginTop: 8,
+  },
+  orderBtn: {
+    flex: 1,
+    paddingVertical: 10,
+    borderRadius: 8,
+    alignItems: "center",
+  },
+  orderBtnText: {
+    color: "#fff",
+    fontWeight: "600",
+  },
   backButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
     padding: 16,
     borderRadius: 12,
     gap: 8,
-    marginTop: 8,
     backgroundColor: PANEL,
     borderWidth: 1,
     borderColor: BORDER,
+    marginTop: 12,
   },
   backButtonText: {
     fontSize: 16,
     fontWeight: "500",
     color: TEXT,
   },
-  
-  // Footer
-  footer: {
-    alignItems: 'center',
-    marginTop: 24,
-    marginBottom: 20,
-  },
-  footerText: {
-    fontSize: 12,
-    color: MUTED,
-    opacity: 0.5,
-  },
-  
-  // Access Denied
   accessDeniedContainer: {
     flex: 1,
     justifyContent: "center",
@@ -693,22 +559,15 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   accessDeniedTitle: {
-    fontSize: 28,
-    fontWeight: "bold",
-    marginTop: 24,
-    marginBottom: 12,
+    fontSize: 24,
+    fontWeight: "700",
     color: TEXT,
+    marginTop: 16,
   },
   accessDeniedText: {
     fontSize: 16,
     color: MUTED,
     textAlign: "center",
-    marginBottom: 24,
-  },
-  redirectText: {
-    fontSize: 14,
-    color: MUTED,
-    opacity: 0.6,
-    fontStyle: "italic",
+    marginTop: 8,
   },
 });

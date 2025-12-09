@@ -28,8 +28,16 @@ export interface AdminStats {
 }
 
 async function authFetch(path: string, options: RequestInit = {}): Promise<Response> {
-  const token =
-    typeof window !== "undefined" ? window.localStorage.getItem("@token") : null;
+  let token: string | null = null;
+  
+  // Try to get token from SecureStore (React Native) or localStorage (web)
+  try {
+    if (typeof window !== "undefined" && window.localStorage) {
+      token = window.localStorage.getItem("@token");
+    }
+  } catch (e) {
+    console.warn("Could not access token from storage:", e);
+  }
 
   const headers: HeadersInit = {
     "Content-Type": "application/json",
@@ -104,7 +112,7 @@ export function computeAdminStats(orders: Order[]): AdminStats {
 // ADMIN: fetch all orders (for full admin view)
 export async function getAllOrders(status?: string): Promise<Order[]> {
   const query = status ? `?status=${encodeURIComponent(status)}` : "";
-  const res = await authFetch(`/orders${query}`);
+  const res = await authFetch(`/orders/admin/all${query}`);
   if (!res.ok) {
     const text = await res.text();
     throw new Error(text || `Failed to fetch orders (${res.status})`);
