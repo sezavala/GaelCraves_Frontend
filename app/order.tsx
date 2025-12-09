@@ -4,7 +4,6 @@ import {
   ScrollView,
   View,
   Text,
-  TextInput,
   Pressable,
   StyleSheet,
   useWindowDimensions,
@@ -17,10 +16,41 @@ const PEACH = "#E7C4A3";
 const TEXT = "rgba(255,255,255,0.92)";
 const MUTED = "rgba(255,255,255,0.72)";
 
-export default function OrderScreen() {
+// Simple data model for your menu tiles
+const MENU_ITEMS = [
+  {
+    id: "protein-mac-bowl",
+    title: "Protein Mac Bowl",
+    subtitle: "Fries + Protein Mac & Cheese",
+    description: "Crispy Chicken Breast + Low-Cal Sauce",
+  },
+  {
+    id: "chicken-sandwhich-fries",
+    title: "Chicken Sandwich + Fries",
+    subtitle: "Crispy Chicken Breast Sandwhich & Fries",
+    description: "A classic combo with a healthy twist.",
+  },
+  {
+    id: "two-chicken-sandwhiches",
+    title: "Two Chicken Sandwiches",
+    subtitle: "2 Crispy Chicken Breast Sandwhiches",
+    description: "Double the protein, double the flavor.",
+  },
+  {
+    id: "two-chicken-sandwhiches-fries",
+    title: "Two Chicken Sandwiches + Fries",
+    subtitle: "2 Crispy Chicken Breast Sandwhiches & Fries",
+    description: "Perfect for sharing or a hearty meal.",
+  },
+];
+
+export default function ExploreScreen() {
   const { width } = useWindowDimensions();
-  const isWide = width >= 900;
+  const isWide = width >= 1100; // 3 columns
+  const isTablet = width >= 700 && width < 1100; // 2 columns
   const isMobile = width < 600;
+
+  const tileBasis = isWide ? "48%" : isTablet ? "47%" : "100%";
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -36,6 +66,7 @@ export default function OrderScreen() {
             <View style={styles.logoFlame} />
             <Text style={styles.brand}>GAEL&apos;S CRAVES</Text>
           </View>
+
           <View style={[styles.navRight, isMobile && styles.navRightMobile]}>
             <Link href="/" asChild>
               <Pressable>
@@ -79,92 +110,42 @@ export default function OrderScreen() {
           </View>
         </View>
 
-        {/* ORDER PANEL */}
-        <View
-          style={[
-            styles.panel,
-            isMobile && styles.panelMobile,
-            { flexDirection: isWide ? "row" : "column" },
-          ]}
-        >
-          {/* Left: photo placeholder */}
-          <View
-            style={[
-              styles.photoCol,
-              { flex: isWide ? 1 : undefined },
-              isMobile && styles.photoColMobile,
-            ]}
-          >
-            <View style={styles.photoPlaceholder}>
-              <Text style={styles.photoTextTitle}>Food Photo Placeholder</Text>
-            </View>
-          </View>
+        {/* HEADER TEXT */}
+        <View style={styles.headerBlock}>
+          <Text style={styles.headerEyebrow}>We Cook For Your Goals</Text>
+          <Text style={styles.headerTitle}>
+            Choose Your Meal Type to Start Your Order
+          </Text>
+          <Text style={styles.headerSub}>
+            Pick a base that matches your appetite and protein needs.
+          </Text>
+        </View>
 
-          {/* Right: order form */}
-          <View
-            style={[
-              styles.formCol,
-              { flex: isWide ? 1 : undefined },
-              isMobile && styles.formColMobile,
-            ]}
-          >
-            <Text style={styles.h1}>Customize Your Order</Text>
-            <Text style={styles.sub}>
-              Set the details for this food item before adding it to your
-              basket.
-            </Text>
-
-            <View style={styles.form}>
-              {/* Name */}
-              <View style={styles.field}>
-                <Text style={styles.label}>Food Name*</Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder="Grilled Chicken Bowl"
-                  placeholderTextColor={MUTED}
-                />
+        {/* GRID OF MENU CARDS */}
+        <View style={styles.gridWrapper}>
+          {MENU_ITEMS.map((item) => (
+            <View
+              key={item.id}
+              style={[styles.menuCard, { flexBasis: tileBasis }]}
+            >
+              {/* Placeholder for future food image */}
+              <View style={styles.cardImagePlaceholder}>
+                <Text style={styles.cardImageText}>Food Image</Text>
               </View>
 
-              {/* Price */}
-              <View style={styles.fieldRow}>
-                <View style={styles.fieldHalf}>
-                  <Text style={styles.label}>Price ($)*</Text>
-                  <TextInput
-                    style={styles.input}
-                    placeholder="12.99"
-                    keyboardType="decimal-pad"
-                    placeholderTextColor={MUTED}
-                  />
-                </View>
+              <View style={styles.cardBody}>
+                <Text style={styles.cardTitle}>{item.title}</Text>
+                <Text style={styles.cardSubtitle}>{item.subtitle}</Text>
+                <Text style={styles.cardDescription}>{item.description}</Text>
 
-                {/* Calories */}
-                <View style={styles.fieldHalf}>
-                  <Text style={styles.label}>Calories*</Text>
-                  <TextInput
-                    style={styles.input}
-                    placeholder="650"
-                    keyboardType="numeric"
-                    placeholderTextColor={MUTED}
-                  />
-                </View>
-              </View>
-
-              {/* Quantity */}
-              <View style={styles.field}>
-                <Text style={styles.label}>Quantity*</Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder="1"
-                  keyboardType="numeric"
-                  placeholderTextColor={MUTED}
-                />
+                <Link href="/order" asChild>
+                  <Pressable style={styles.cardButton}>
+                    <Text style={styles.cardButtonText}>START ORDER</Text>
+                  </Pressable>
+                </Link>
               </View>
             </View>
-
-            <Pressable style={styles.addBtn}>
-              <Text style={styles.addBtnText}>ADD TO BASKET</Text>
-            </Pressable>
-          </View>
+          ))}
         </View>
 
         {/* FOOTER */}
@@ -220,94 +201,100 @@ const styles = StyleSheet.create({
   },
   loginText: { color: "#1b1b1b", fontWeight: "800" },
 
-  // Panel
-  panel: {
+  // HEADER
+  headerBlock: {
     marginTop: 10,
+    marginBottom: 18,
     backgroundColor: PANEL,
+    borderRadius: 18,
     borderWidth: 1,
     borderColor: "rgba(255,255,255,0.08)",
     padding: 24,
-    borderRadius: 18,
   },
-  panelMobile: { padding: 18 },
-
-  // Left: photo
-  photoCol: { paddingRight: 16, justifyContent: "center" },
-  photoColMobile: { paddingRight: 0, marginBottom: 20 },
-  photoPlaceholder: {
-    borderWidth: 1,
-    borderStyle: "dashed",
-    borderColor: "rgba(255,255,255,0.25)",
-    borderRadius: 16,
-    paddingVertical: 40,
-    paddingHorizontal: 20,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#0F1919",
-  },
-  photoTextTitle: {
-    color: TEXT,
-    fontWeight: "800",
+  headerEyebrow: {
+    color: PEACH,
+    fontWeight: "700",
+    letterSpacing: 1,
     marginBottom: 6,
   },
-  photoTextSub: {
-    color: MUTED,
-    fontSize: 13,
-    textAlign: "center",
-  },
-
-  // Right: form
-  formCol: { paddingLeft: 16 },
-  formColMobile: { paddingLeft: 0 },
-  h1: {
+  headerTitle: {
     color: TEXT,
     fontSize: 24,
     fontWeight: "800",
-    marginBottom: 8,
+    marginBottom: 6,
     fontFamily: "Georgia, Times New Roman, serif",
   },
-  sub: {
+  headerSub: {
     color: MUTED,
     fontSize: 14,
-    marginBottom: 18,
-  },
-  form: { gap: 14 },
-  field: { marginBottom: 10 },
-  fieldRow: {
-    flexDirection: "row",
-    gap: 10,
-    marginBottom: 10,
-  },
-  fieldHalf: { flex: 1 },
-  label: { color: MUTED, fontSize: 12, marginBottom: 4 },
-  input: {
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.16)",
-    borderRadius: 6,
-    paddingHorizontal: 10,
-    paddingVertical: 10,
-    color: TEXT,
-    fontSize: 14,
-    backgroundColor: "#0B1414",
+    lineHeight: 20,
+    maxWidth: 680,
   },
 
-  addBtn: {
-    marginTop: 18,
+  // GRID
+  gridWrapper: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 18,
+  },
+  menuCard: {
+    backgroundColor: PANEL,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.08)",
+    padding: 16,
+  },
+  cardImagePlaceholder: {
+    borderRadius: 14,
+    backgroundColor: "#0F1919",
+    height: 150,
+    marginBottom: 14,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.06)",
+  },
+  cardImageText: {
+    color: MUTED,
+    fontSize: 12,
+  },
+  cardBody: {},
+  cardTitle: {
+    color: TEXT,
+    fontWeight: "800",
+    fontSize: 16,
+    marginBottom: 2,
+  },
+  cardSubtitle: {
+    color: PEACH,
+    fontSize: 12,
+    fontWeight: "700",
+    marginBottom: 6,
+  },
+  cardDescription: {
+    color: MUTED,
+    fontSize: 13,
+    marginBottom: 10,
+  },
+  cardButton: {
     borderWidth: 1,
     borderColor: PEACH,
-    paddingVertical: 12,
-    borderRadius: 8,
-    alignItems: "center",
+    borderRadius: 999,
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    alignSelf: "flex-start",
+    marginTop: 4,
   },
-  addBtnText: {
+  cardButtonText: {
     color: PEACH,
     fontWeight: "800",
+    fontSize: 12,
     letterSpacing: 0.5,
   },
 
-  // Footer
+  // FOOTER
   footer: {
-    marginTop: 36,
+    marginTop: 32,
     paddingTop: 18,
     borderTopColor: "rgba(255,255,255,0.08)",
     borderTopWidth: 1,
