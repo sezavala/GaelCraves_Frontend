@@ -147,17 +147,35 @@ export default function AdminScreen() {
                 <Text style={styles.menuItemText}>Home</Text>
               </Pressable>
               
-              <Pressable style={styles.menuItem} onPress={() => setMenuOpen(false)}>
+              <Pressable 
+                style={styles.menuItem}
+                onPress={() => {
+                  setMenuOpen(false);
+                  // Already on orders admin; just close menu
+                }}
+              >
                 <IconSymbol name="bag.fill" size={20} color={PEACH} />
                 <Text style={styles.menuItemText}>Orders ({stats.pendingOrders})</Text>
               </Pressable>
               
-              <Pressable style={styles.menuItem} onPress={() => setMenuOpen(false)}>
+              <Pressable 
+                style={styles.menuItem}
+                onPress={() => {
+                  setMenuOpen(false);
+                  router.push("/admin_menu");
+                }}
+              >
                 <IconSymbol name="book.fill" size={20} color={PEACH} />
                 <Text style={styles.menuItemText}>Menu ({stats.menuItems})</Text>
               </Pressable>
               
-              <Pressable style={styles.menuItem} onPress={() => setMenuOpen(false)}>
+              <Pressable 
+                style={styles.menuItem}
+                onPress={() => {
+                  setMenuOpen(false);
+                  router.push("/admin_users");
+                }}
+              >
                 <IconSymbol name="person.2.fill" size={20} color={PEACH} />
                 <Text style={styles.menuItemText}>Users ({stats.totalUsers})</Text>
               </Pressable>
@@ -293,7 +311,7 @@ export default function AdminScreen() {
               pressed && styles.cardPressed,
             ]}
             onPress={() => {
-              // Navigate to orders management
+              // Already on orders view; could scroll to orders section in future
             }}
           >
             <View style={styles.primaryCardHeader}>
@@ -333,7 +351,7 @@ export default function AdminScreen() {
               pressed && styles.cardPressed,
             ]}
             onPress={() => {
-              // Navigate to menu management
+              router.push("/admin_menu");
             }}
           >
             <View style={styles.cardRow}>
@@ -357,7 +375,7 @@ export default function AdminScreen() {
               pressed && styles.cardPressed,
             ]}
             onPress={() => {
-              // Navigate to user management
+              router.push("/admin_users");
             }}
           >
             <View style={styles.cardRow}>
