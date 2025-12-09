@@ -202,7 +202,7 @@ export function useAuth() {
 
         if (result.success && result.user) {
           // Store user data in AuthContext
-          setUser(result.user);
+          await setUser(result.user);
 
           // Reset form
           resetForm();
@@ -230,7 +230,7 @@ export function useAuth() {
 
         if (result.success && result.user) {
           // Store user data in AuthContext
-          setUser(result.user);
+          await setUser(result.user);
 
           const roles = result.user.roles || [];
           const isAdminUser =

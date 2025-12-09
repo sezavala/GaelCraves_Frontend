@@ -1,4 +1,5 @@
 import { API_BASE_URL } from "@/config/environment";
+import * as SecureStore from "expo-secure-store";
 
 export type OrderStatus = "PENDING" | "CONFIRMED" | "CANCELLED" | "DELIVERED" | string;
 
@@ -27,27 +28,55 @@ export interface AdminStats {
   menuItems: number;
 }
 
-async function authFetch(path: string, options: RequestInit = {}): Promise<Response> {
-  let token: string | null = null;
-  
-  // Try to get token from localStorage (stored in @user object)
+/**
+ * Get authentication token from storage
+ */
+async function getAuthToken(): Promise<string | null> {
   try {
+    // Try SecureStore first (React Native)
+    try {
+      const token = await SecureStore.getItemAsync("userToken");
+      if (token) {
+        console.log("🔐 Token found in SecureStore");
+        return token;
+      }
+    } catch (secureStoreError) {
+      console.log("📱 SecureStore not available (likely web), trying localStorage...");
+    }
+
+    // Fallback to localStorage (Web)
     if (typeof window !== "undefined" && window.localStorage) {
       // First try @token key
-      token = window.localStorage.getItem("@token");
-      
-      // If not found, try to get from @user object
-      if (!token) {
-        const userStr = window.localStorage.getItem("@user");
-        if (userStr) {
-          const user = JSON.parse(userStr);
-          token = user.token;
+      const localToken = window.localStorage.getItem("@token");
+      if (localToken) {
+        console.log("🔐 Token found in localStorage @token");
+        return localToken;
+      }
+
+      // Try getting from @user object
+      const userStr = window.localStorage.getItem("@user");
+      if (userStr) {
+        const user = JSON.parse(userStr);
+        if (user.token) {
+          console.log("🔐 Token found in @user object");
+          return user.token;
         }
       }
     }
-  } catch (e) {
-    console.warn("Could not access token from storage:", e);
+
+    console.warn("⚠️ No token found in any storage");
+    return null;
+  } catch (error) {
+    console.error("❌ Error retrieving token:", error);
+    return null;
   }
+}
+
+/**
+ * Authenticated fetch helper
+ */
+async function authFetch(path: string, options: RequestInit = {}): Promise<Response> {
+  const token = await getAuthToken();
 
   const headers: HeadersInit = {
     "Content-Type": "application/json",
@@ -57,16 +86,20 @@ async function authFetch(path: string, options: RequestInit = {}): Promise<Respo
 
   if (token) {
     (headers as any).Authorization = `Bearer ${token}`;
-    console.log("🔐 Admin request with token to:", path);
+    console.log("🔐 Admin request WITH token to:", path);
   } else {
-    console.warn("⚠️ Admin request WITHOUT token to:", path);
+    console.error("❌ Admin request WITHOUT token to:", path);
   }
 
-  const res = await fetch(`${API_BASE_URL}${path}`, {
+  const url = `${API_BASE_URL}${path}`;
+  console.log("📡 Fetching:", url);
+
+  const res = await fetch(url, {
     ...options,
     headers,
   });
 
+  console.log(`📥 Response: ${res.status} ${res.statusText}`);
   return res;
 }
 
@@ -122,30 +155,50 @@ export function computeAdminStats(orders: Order[]): AdminStats {
   };
 }
 
-// ADMIN: fetch all orders (for full admin view)
+/**
+ * ADMIN: Get all orders
+ */
 export async function getAllOrders(status?: string): Promise<Order[]> {
-  const query = status ? `?status=${encodeURIComponent(status)}` : "";
-  const res = await authFetch(`/orders/admin/all${query}`);
-  if (!res.ok) {
-    const text = await res.text();
-    throw new Error(text || `Failed to fetch orders (${res.status})`);
+  try {
+    const query = status ? `?status=${encodeURIComponent(status)}` : "";
+    const res = await authFetch(`/orders/admin/all${query}`);
+    
+    if (!res.ok) {
+      const text = await res.text();
+      console.error("❌ Failed to fetch orders:", text);
+      throw new Error(text || `Failed to fetch orders (${res.status})`);
+    }
+    
+    return await res.json();
+  } catch (error) {
+    console.error("❌ Error in getAllOrders:", error);
+    throw error;
   }
-  return res.json();
 }
 
-// ADMIN: fetch dashboard stats from backend
+/**
+ * ADMIN: Get dashboard statistics
+ */
 export async function getAdminStats(): Promise<AdminStats> {
-  const res = await authFetch(`/orders/admin/stats`);
-  if (!res.ok) {
-    const text = await res.text();
-    throw new Error(text || `Failed to fetch admin stats (${res.status})`);
+  try {
+    const res = await authFetch(`/orders/admin/stats`);
+    
+    if (!res.ok) {
+      const text = await res.text();
+      console.error("❌ Failed to fetch admin stats:", text);
+      throw new Error(text || `Failed to fetch admin stats (${res.status})`);
+    }
+    
+    const data = await res.json();
+    return {
+      pendingOrders: data.pendingOrders ?? 0,
+      todayRevenue: Number(data.todayRevenue ?? 0),
+      totalUsers: data.totalUsers ?? 0,
+      totalAdmins: data.totalAdmins ?? 0,
+      menuItems: data.menuItems ?? 0,
+    };
+  } catch (error) {
+    console.error("❌ Error in getAdminStats:", error);
+    throw error;
   }
-  const data = await res.json();
-  return {
-    pendingOrders: data.pendingOrders ?? 0,
-    todayRevenue: Number(data.todayRevenue ?? 0),
-    totalUsers: data.totalUsers ?? 0,
-    totalAdmins: data.totalAdmins ?? 0,
-    menuItems: data.menuItems ?? 0,
-  };
 }

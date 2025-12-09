@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
+import * as SecureStore from 'expo-secure-store';
 
 type User = {
   id?: string;
@@ -59,22 +60,44 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, []);
 
-  const setUser = (u: User) => {
+  const setUser = async (u: User) => {
     console.log('👤 Setting user in AuthContext:', u);
     setUserState(u);
+    
     try {
-      if (typeof window !== 'undefined' && window.localStorage) {
-        if (u) {
+      if (u) {
+        // Store in SecureStore (React Native)
+        try {
+          if (u.token) {
+            await SecureStore.setItemAsync('userToken', u.token);
+            console.log('💾 Token saved to SecureStore');
+          }
+        } catch (secureStoreError) {
+          console.log('📱 SecureStore not available (web), using localStorage');
+        }
+
+        // Store in localStorage (Web)
+        if (typeof window !== 'undefined' && window.localStorage) {
           window.localStorage.setItem('@user', JSON.stringify(u));
-          // Also store token separately for easier access
           if (u.token) {
             window.localStorage.setItem('@token', u.token);
           }
-          console.log('💾 User saved to storage with token');
-        } else {
+          console.log('💾 User saved to localStorage with token');
+        }
+      } else {
+        // Clear SecureStore
+        try {
+          await SecureStore.deleteItemAsync('userToken');
+          console.log('🗑️ Token removed from SecureStore');
+        } catch (e) {
+          console.log('📱 SecureStore not available');
+        }
+
+        // Clear localStorage
+        if (typeof window !== 'undefined' && window.localStorage) {
           window.localStorage.removeItem('@user');
           window.localStorage.removeItem('@token');
-          console.log('🗑️ User removed from storage');
+          console.log('🗑️ User removed from localStorage');
         }
       }
     } catch (e) {
