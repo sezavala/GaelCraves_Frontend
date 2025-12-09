@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from "react";
-import { StyleSheet, View, Pressable, ScrollView, Platform, SafeAreaView, Text } from "react-native";
+import { StyleSheet, View, Pressable, ScrollView, Platform, SafeAreaView, Text, Alert } from "react-native";
 import { useRouter } from "expo-router";
 import { useAdminContext } from "@/auth/AdminContext";
+import { useAuth } from "@/auth/AuthContext";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 
 // Colors matching home page
@@ -14,6 +15,7 @@ const BORDER = "rgba(255,255,255,0.08)";
 
 export default function AdminScreen() {
   const { isAdmin } = useAdminContext();
+  const { user, logout } = useAuth();
   const router = useRouter();
   const [menuOpen, setMenuOpen] = useState(false);
 
@@ -24,6 +26,17 @@ export default function AdminScreen() {
     totalUsers: 348,
     menuItems: 67,
   });
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+      Alert.alert("Success", "Logged out successfully");
+      router.replace("/(tabs)");
+    } catch (error) {
+      console.error("Logout error:", error);
+      Alert.alert("Error", "Failed to logout");
+    }
+  };
 
   useEffect(() => {
     if (!isAdmin) {
@@ -66,6 +79,9 @@ export default function AdminScreen() {
             <View style={styles.logoFlame} />
             <Text style={styles.mobileTitle}>ADMIN PANEL</Text>
           </View>
+          <Pressable onPress={handleLogout} style={styles.logoutIconBtn}>
+            <IconSymbol name="arrow.right.square" size={24} color={PEACH} />
+          </Pressable>
         </View>
       )}
 
@@ -119,6 +135,17 @@ export default function AdminScreen() {
                 <IconSymbol name="gearshape.fill" size={20} color={PEACH} />
                 <Text style={styles.menuItemText}>Settings</Text>
               </Pressable>
+
+              <Pressable 
+                style={[styles.menuItem, { marginTop: 20, backgroundColor: 'rgba(231, 196, 163, 0.1)' }]} 
+                onPress={() => {
+                  setMenuOpen(false);
+                  handleLogout();
+                }}
+              >
+                <IconSymbol name="arrow.right.square" size={20} color={PEACH} />
+                <Text style={styles.menuItemText}>Logout</Text>
+              </Pressable>
             </View>
           </View>
         </Pressable>
@@ -132,14 +159,25 @@ export default function AdminScreen() {
         <View style={styles.header}>
           <View style={styles.headerTop}>
             <View>
-              <Text style={styles.greeting}>Welcome back, Owner! 👋</Text>
+              <Text style={styles.greeting}>Welcome back, {user?.firstName || 'Owner'}! 👋</Text>
               <Text style={styles.subtitle}>
                 Here's what's happening today
               </Text>
             </View>
-            <View style={styles.badge}>
-              <IconSymbol name="shield.fill" size={16} color={PEACH} />
-              <Text style={styles.badgeText}>Admin</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+              <View style={styles.badge}>
+                <IconSymbol name="shield.fill" size={16} color={PEACH} />
+                <Text style={styles.badgeText}>Admin</Text>
+              </View>
+              {Platform.OS !== 'android' && (
+                <Pressable 
+                  onPress={handleLogout}
+                  style={styles.logoutBtn}
+                >
+                  <IconSymbol name="arrow.right.square" size={18} color={BG} />
+                  <Text style={styles.logoutText}>LOGOUT</Text>
+                </Pressable>
+              )}
             </View>
           </View>
         </View>
@@ -622,6 +660,26 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: MUTED,
     lineHeight: 20,
+  },
+  
+  // Logout Buttons
+  logoutIconBtn: {
+    padding: 8,
+  },
+  logoutBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: PEACH,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+  },
+  logoutText: {
+    color: BG,
+    fontSize: 12,
+    fontWeight: "800",
+    letterSpacing: 0.5,
   },
   
   // Back Button
