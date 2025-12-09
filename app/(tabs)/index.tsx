@@ -1,5 +1,6 @@
 import * as React from "react";
-import { Link } from "expo-router";
+import { Link, useRouter } from "expo-router";
+import { Alert } from "react-native";
 import {
   SafeAreaView,
   ScrollView,
@@ -9,152 +10,127 @@ import {
   Image,
   StyleSheet,
   useWindowDimensions,
+  Platform,
 } from "react-native";
-
-const BG = "#0B1313";
-const PANEL = "#0E1717";
-const PEACH = "#E7C4A3";
-const TEXT = "rgba(255,255,255,0.92)";
-const MUTED = "rgba(255,255,255,0.72)";
+import { useAuth } from "@/auth/AuthContext";
+import { useAdminContext } from "@/auth/AdminContext";
 
 export default function HomeScreen() {
   const { width } = useWindowDimensions();
-  const isWide = width >= 900;   // desktop
-  const isMobile = width < 600;  // mobile
+  const isWide = width >= 900; // simple responsive tweak for web
+  const router = useRouter();
+  const { user, logout } = useAuth();
+
+  const handleNavLogin = (which = "primary") => {
+    console.log("[nav] handleNavLogin called from", which);
+    // Show a native alert so the user sees something even if Metro logs aren't visible
+    try {
+      Alert.alert("Debug", `Login pressed (${which})`, [{ text: "OK" }]);
+    } catch (e) {
+      console.log("[nav] Alert failed", e);
+    }
+    // Attempt navigation as well
+    try {
+      router.push("/login");
+    } catch (e) {
+      console.log("[nav] router.push failed", e);
+    }
+  };
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+      Alert.alert("Success", "You have been logged out");
+      router.replace("/(tabs)");
+    } catch (error) {
+      console.error("Logout error:", error);
+    }
+  };
 
   return (
     <SafeAreaView style={styles.safe}>
       <ScrollView
-        contentContainerStyle={[
-          styles.container,
-          isMobile && styles.containerMobile,
-        ]}
+        contentContainerStyle={styles.container}
+        contentInsetAdjustmentBehavior="automatic"
       >
         {/* NAVBAR */}
         <View style={styles.nav}>
           <View style={styles.brandRow}>
             <View style={styles.logoFlame} />
-            <Text style={styles.brand}>GAEL&apos;S CRAVES</Text>
+            <Text style={styles.brand}>GAEL'S CRAVES</Text>
           </View>
-
-          <View style={[styles.navRight, isMobile && styles.navRightMobile]}>
-            <Link href="/" asChild>
-              <Pressable>
-                <Text style={[styles.navLink, isMobile && styles.navLinkMobile]}>
-                  Home
-                </Text>
-              </Pressable>
-            </Link>
-
-            <Link href="/about" asChild>
-              <Pressable>
-                <Text style={[styles.navLink, isMobile && styles.navLinkMobile]}>
-                  About
-                </Text>
-              </Pressable>
-            </Link>
-
-            {/* <Link href="/basket" asChild>
-              <Pressable>
-                <Text style={[styles.navLink, isMobile && styles.navLinkMobile]}>
-                  Basket
-                </Text>
-              </Pressable>
-            </Link> */}
-
-            <Link href="/contact" asChild>
-              <Pressable>
-                <Text style={[styles.navLink, isMobile && styles.navLinkMobile]}>
-                  Contact us
-                </Text>
-              </Pressable>
-            </Link>
-
-            <Link href="/login" asChild>
+          <View style={styles.navRight}>
+            <Text style={styles.navLink}>Home</Text>
+            <Text style={styles.navLink}>About</Text>
+            <Text style={styles.navLink}>Menu</Text>
+            <Text style={styles.navLink}>Contact us</Text>
+            
+            {user ? (
               <Pressable
-                style={isMobile ? styles.viewBasketBtnMobile : styles.viewBasketBtn}
+                style={styles.logoutBtn}
+                onPress={handleLogout}
               >
-                <Text style={styles.viewBasketText}>LOGIN</Text>
+                <Text style={styles.logoutText}>LOGOUT</Text>
               </Pressable>
-            </Link>
+            ) : (
+              <>
+                {Platform.OS === "web" ? (
+                  <Link href="/login" asChild>
+                    <Pressable style={styles.viewMenuBtn}>
+                      <Text style={styles.viewMenuText}>LOGIN</Text>
+                    </Pressable>
+                  </Link>
+                ) : (
+                  <Pressable
+                    style={styles.viewMenuBtn}
+                    android_ripple={{ color: "rgba(0,0,0,0.1)" }}
+                    onPress={() => handleNavLogin("nav-right")}
+                    testID="nav-login-right"
+                  >
+                    <Text style={styles.viewMenuText}>LOGIN</Text>
+                  </Pressable>
+                )}
+              </>
+            )}
           </View>
         </View>
-
 
         {/* HERO */}
         <View
           style={[
             styles.heroCard,
-            isMobile && styles.heroCardMobile,
             { flexDirection: isWide ? "row" : "column" },
           ]}
         >
           {/* Left copy */}
-          <View
-            style={[
-              styles.heroLeft,
-              { flex: isWide ? 1 : undefined },
-              isMobile && styles.heroLeftMobile,
-            ]}
-          >
+          <View style={[styles.heroLeft, { flex: isWide ? 1 : undefined }]}>
             <Text style={styles.eyebrow}>Crafted with passion</Text>
-            <Text style={[styles.h1, isMobile && styles.h1Mobile]}>
-              Where <Text style={styles.accent}>Cravings</Text>
-              {"\n"}
-              Meet Their Perfect
-              {"\n"}
-              Match
+            <Text style={styles.h1}>
+              Where <Text style={styles.accent}>Cravings</Text> Meet Their
+              Perfect Match
             </Text>
-            <Text style={[styles.sub, isMobile && styles.subMobile]}>
+            <Text style={styles.sub}>
               Discover bold flavors and unforgettable dishes in a place where
               every craving is satisfied with the perfect bite, crafted just for
               you.
             </Text>
             <View style={styles.ctaRow}>
-            <Link href="/order" asChild>
               <Pressable style={styles.primaryOutline}>
                 <Text style={styles.primaryOutlineText}>PLACE YOUR ORDER</Text>
               </Pressable>
-            </Link>
             </View>
           </View>
 
           {/* Right imagery */}
-          <View
-            style={[
-              styles.heroRight,
-              { flex: isWide ? 1 : undefined },
-              isMobile && styles.heroRightMobile,
-            ]}
-          >
-            <View
-              style={[styles.dishStage, isMobile && styles.dishStageMobile]}
-            >
+          <View style={[styles.heroRight, { flex: isWide ? 1 : undefined }]}>
+            <View style={styles.dishStage}>
+              <Image style={[styles.dish, styles.dishTop]} resizeMode="cover" />
               <Image
-                // source={{ uri: "link goes here" }}
-                style={[
-                  styles.dish,
-                  isMobile && styles.dishMobile,
-                  styles.dishTop,
-                ]}
+                style={[styles.dish, styles.dishBottomLeft]}
                 resizeMode="cover"
               />
               <Image
-                // source={{ uri: "link goes here" }}
-                style={[
-                  styles.dish,
-                  isMobile && styles.dishMobile,
-                  styles.dishBottomLeft,
-                ]}
-                resizeMode="cover"
-              />
-              <Image
-                // source={{ uri: "link goes here" }}
-                style={[
-                  styles.dish,
-                  isMobile && styles.dishMobile,
-                  styles.dishBottomRight,
-                ]}
+                style={[styles.dish, styles.dishBottomRight]}
                 resizeMode="cover"
               />
             </View>
@@ -163,26 +139,30 @@ export default function HomeScreen() {
 
         {/* FOOTER (simple) */}
         <View style={styles.footer}>
-          <Text style={styles.footerBrand}>GAEL&apos;S CRAVES</Text>
+          <Text style={styles.footerBrand}>GAEL'S CRAVES</Text>
           <Text style={styles.copy}>
-            © {new Date().getFullYear()} Gael&apos;s Craves — All rights
-            reserved.
+            © {new Date().getFullYear()} Gael's Craves — All rights reserved.
           </Text>
         </View>
+
+        {/* Extra padding for tab bar on Android */}
+        {Platform.OS === "android" && <View style={{ height: 80 }} />}
       </ScrollView>
     </SafeAreaView>
   );
 }
 
+const BG = "#0B1313";
+const PANEL = "#0E1717";
+const PEACH = "#E7C4A3";
+const TEXT = "rgba(255,255,255,0.92)";
+const MUTED = "rgba(255,255,255,0.72)";
+
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: BG },
-
   container: {
     paddingHorizontal: 20,
-    paddingBottom: 40,
-  },
-  containerMobile: {
-    paddingHorizontal: 12,
+    paddingBottom: Platform.OS === "android" ? 100 : 40,
   },
 
   // NAV
@@ -203,26 +183,57 @@ const styles = StyleSheet.create({
   },
   brand: { color: TEXT, fontSize: 16, fontWeight: "800", letterSpacing: 1 },
   navRight: { flexDirection: "row", alignItems: "center", gap: 18 },
-  navRightMobile: {
-    gap: 10,
-  },
-  navLink: { color: TEXT, opacity: 0.85, fontSize: 14 },
-  navLinkMobile: {
-    fontSize: 12,
-  },
-  viewBasketBtn: {
+  navLink: { color: TEXT, opacity: 0.85 },
+  viewMenuBtn: {
     backgroundColor: PEACH,
     paddingVertical: 10,
     paddingHorizontal: 14,
     borderRadius: 8,
   },
-  viewBasketBtnMobile: {
+  viewMenuText: { color: "#1b1b1b", fontWeight: "800" },
+
+  // User section
+  userSection: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  adminButton: {
     backgroundColor: PEACH,
     paddingVertical: 8,
-    paddingHorizontal: 10,
+    paddingHorizontal: 12,
+    borderRadius: 6,
+  },
+  adminButtonText: {
+    color: "#1b1b1b",
+    fontSize: 12,
+    fontWeight: "800",
+  },
+  welcomeText: {
+    color: TEXT,
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  adminBadge: {
+    backgroundColor: PEACH,
+    color: "#1b1b1b",
+    fontSize: 10,
+    fontWeight: "800",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 4,
+  },
+  logoutBtn: {
+    backgroundColor: PEACH,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
     borderRadius: 8,
   },
-  viewBasketText: { color: "#1b1b1b", fontWeight: "800" },
+  logoutText: {
+    color: "#1b1b1b",
+    fontSize: 12,
+    fontWeight: "800",
+  },
 
   // HERO
   heroCard: {
@@ -233,13 +244,7 @@ const styles = StyleSheet.create({
     padding: 24,
     borderRadius: 18,
   },
-  heroCardMobile: {
-    padding: 18,
-  },
   heroLeft: { paddingRight: 16 },
-  heroLeftMobile: {
-    paddingRight: 0,
-  },
   eyebrow: {
     color: PEACH,
     fontWeight: "700",
@@ -252,11 +257,7 @@ const styles = StyleSheet.create({
     lineHeight: 62,
     fontWeight: "800",
     marginBottom: 14,
-    fontFamily: "Georgia, Times New Roman, serif", // web serif fallback
-  },
-  h1Mobile: {
-    fontSize: 32,
-    lineHeight: 36,
+    fontFamily: "Georgia, Times New Roman, serif",
   },
   accent: { color: PEACH },
   sub: {
@@ -265,10 +266,6 @@ const styles = StyleSheet.create({
     lineHeight: 22,
     marginTop: 6,
     maxWidth: 680,
-  },
-  subMobile: {
-    fontSize: 14,
-    lineHeight: 20,
   },
   ctaRow: { flexDirection: "row", gap: 12, marginTop: 18 },
   primaryOutline: {
@@ -282,10 +279,6 @@ const styles = StyleSheet.create({
 
   // Right imagery
   heroRight: { marginTop: 24 },
-  heroRightMobile: {
-    marginTop: 32,
-    alignItems: "center",
-  },
   dishStage: {
     height: 360,
     borderRadius: 16,
@@ -293,9 +286,6 @@ const styles = StyleSheet.create({
     position: "relative",
     justifyContent: "center",
     alignItems: "center",
-  },
-  dishStageMobile: {
-    height: 260,
   },
   dish: {
     width: 220,
@@ -307,12 +297,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.35,
     shadowOffset: { width: 0, height: 8 },
     shadowRadius: 16,
-  },
-  dishMobile: {
-    width: 150,
-    height: 150,
-    borderRadius: 75,
-    borderWidth: 4,
   },
   dishTop: { position: "absolute", top: 0, right: 40 },
   dishBottomLeft: { position: "absolute", bottom: 0, left: 20 },
