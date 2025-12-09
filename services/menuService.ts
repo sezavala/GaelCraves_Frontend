@@ -8,12 +8,16 @@ import { getAuthToken } from "./authToken";
 
 export interface FoodItem {
   foodItemId: number;
-  itemName: string;
-  description: string;
+  name: string;
+  description?: string;
   price: number;
+  calories?: number;
+  protein?: number;
+  carbohydrates?: number;
+  fat?: number;
   imageUrl?: string;
   category?: string;
-  available: boolean;
+  isAvailable: boolean;
 }
 
 export interface Menu {

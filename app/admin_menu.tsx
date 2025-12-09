@@ -168,20 +168,20 @@ export default function AdminMenuScreen() {
                   )}
                   <View style={styles.foodInfo}>
                     <View style={styles.foodHeader}>
-                      <Text style={styles.foodName}>{item.itemName}</Text>
+                      <Text style={styles.foodName}>{item.name}</Text>
                       <View
                         style={[
                           styles.availableBadge,
-                          !item.available && styles.unavailableBadge,
+                          !item.isAvailable && styles.unavailableBadge,
                         ]}
                       >
                         <Text
                           style={[
                             styles.availableText,
-                            !item.available && styles.unavailableText,
+                            !item.isAvailable && styles.unavailableText,
                           ]}
                         >
-                          {item.available ? "Available" : "Unavailable"}
+                          {item.isAvailable ? "Available" : "Unavailable"}
                         </Text>
                       </View>
                     </View>
