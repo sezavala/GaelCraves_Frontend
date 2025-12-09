@@ -38,13 +38,20 @@ export async function getMenus(): Promise<Menu[]> {
     });
 
     if (!response.ok) {
-      throw new Error(`Failed to fetch menus: ${response.statusText}`);
+      const text = await response.text();
+      console.error("❌ Failed to fetch menus:", response.status, text);
+      return [];
     }
 
-    return await response.json();
+    try {
+      return await response.json();
+    } catch (parseError) {
+      console.error("❌ Failed to parse menus JSON:", parseError);
+      return [];
+    }
   } catch (error) {
     console.error("Error fetching menus:", error);
-    throw error;
+    return [];
   }
 }
 
@@ -90,7 +97,8 @@ export async function getFoodItemById(id: number): Promise<FoodItem> {
     });
 
     if (!response.ok) {
-      throw new Error(`Failed to fetch food item: ${response.statusText}`);
+  const text = await response.text();
+  throw new Error(text || `Failed to fetch food item: ${response.statusText}`);
     }
 
     return await response.json();
