@@ -1,16 +1,8 @@
 import React, { useEffect, useState } from "react";
-import { StyleSheet, View, Pressable, ScrollView, Platform, SafeAreaView, Text, Alert, ActivityIndicator } from "react-native";
+import { StyleSheet, View, Pressable, ScrollView, Platform, SafeAreaView, Text } from "react-native";
 import { useRouter } from "expo-router";
 import { useAdminContext } from "@/auth/AdminContext";
-import { useAuth } from "@/auth/AuthContext";
 import { IconSymbol } from "@/components/ui/icon-symbol";
-import {
-  getAdminStats,
-  getAllOrders,
-  Order,
-  updateOrderStatus,
-  AdminStats,
-} from "@/services/adminService";
 
 // Colors matching home page
 const BG = "#0B1313";
@@ -22,95 +14,38 @@ const BORDER = "rgba(255,255,255,0.08)";
 
 export default function AdminScreen() {
   const { isAdmin } = useAdminContext();
-  const { user, logout } = useAuth();
   const router = useRouter();
   const [menuOpen, setMenuOpen] = useState(false);
-  const [stats, setStats] = useState<AdminStats>({
-    pendingOrders: 0,
-    todayRevenue: 0,
-    totalUsers: 0,
-    totalAdmins: 0,
-    menuItems: 0,
+
+  // Mock stats - replace with real data from your backend
+  const [stats, setStats] = useState({
+    pendingOrders: 12,
+    todayRevenue: 1247.50,
+    totalUsers: 348,
+    menuItems: 67,
   });
-  const [orders, setOrders] = useState<Order[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-
-  // Load real data from backend
-  const loadAdminData = async (showLoader = true) => {
-    if (!isAdmin) return;
-
-    try {
-      if (showLoader) setLoading(true);
-      setRefreshing(true);
-
-      console.log("📊 Loading admin dashboard data...");
-      
-      const [statsData, ordersData] = await Promise.all([
-        getAdminStats(),
-        getAllOrders(),
-      ]);
-
-      console.log("✅ Admin data loaded:", { statsData, ordersCount: ordersData.length });
-      setStats(statsData);
-      setOrders(ordersData);
-    } catch (error: any) {
-      console.error("❌ Failed to load admin data:", error);
-      Alert.alert("Error", error.message || "Failed to load admin data");
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  };
-
-  const handleUpdateStatus = async (
-    orderId: number,
-    action: "CONFIRMED" | "CANCELLED"
-  ) => {
-    try {
-      console.log(`📝 Updating order ${orderId} to ${action}`);
-      await updateOrderStatus(orderId, action);
-      
-      Alert.alert("Success", `Order ${action.toLowerCase()} successfully`);
-      
-      // Reload data to get fresh stats and orders
-      await loadAdminData(false);
-    } catch (error: any) {
-      console.error("❌ Failed to update order:", error);
-      Alert.alert("Error", error.message || "Failed to update order status");
-    }
-  };
-
-  const handleLogout = async () => {
-    try {
-      await logout();
-      Alert.alert("Success", "Logged out successfully");
-      router.replace("/(tabs)");
-    } catch (error) {
-      console.error("Logout error:", error);
-      Alert.alert("Error", "Failed to logout");
-    }
-  };
 
   useEffect(() => {
     if (!isAdmin) {
-      Alert.alert("Access Denied", "You don't have admin privileges");
-      router.replace("/(tabs)");
-    } else {
-      loadAdminData();
+      const timer = setTimeout(() => {
+        router.replace("/(tabs)");
+      }, 2000);
+      return () => clearTimeout(timer);
     }
   }, [isAdmin, router]);
 
   if (!isAdmin) {
-    return null;
-  }
-
-  if (loading) {
     return (
       <SafeAreaView style={styles.container}>
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={PEACH} />
-          <Text style={styles.loadingText}>Loading admin dashboard...</Text>
+        <View style={styles.accessDeniedContainer}>
+          <IconSymbol name="exclamationmark.triangle.fill" size={64} color={PEACH} />
+          <Text style={styles.accessDeniedTitle}>Access Denied</Text>
+          <Text style={styles.accessDeniedText}>
+            You don't have permission to access this page.
+          </Text>
+          <Text style={styles.redirectText}>
+            Redirecting to home...
+          </Text>
         </View>
       </SafeAreaView>
     );
@@ -131,9 +66,6 @@ export default function AdminScreen() {
             <View style={styles.logoFlame} />
             <Text style={styles.mobileTitle}>ADMIN PANEL</Text>
           </View>
-          <Pressable onPress={handleLogout} style={styles.logoutIconBtn}>
-            <IconSymbol name="arrow.right.square" size={24} color={PEACH} />
-          </Pressable>
         </View>
       )}
 
@@ -166,11 +98,8 @@ export default function AdminScreen() {
               <Pressable 
                 style={styles.menuItem} 
                 onPress={() => {
-                  console.log("📦 Mobile Menu: Orders clicked");
                   setMenuOpen(false);
-                  Alert.alert("Order Management", "Navigating to orders...", [
-                    { text: "OK", onPress: () => router.push("/admin_new" as any) }
-                  ]);
+                  router.push("/admin_new");
                 }}
               >
                 <IconSymbol name="bag.fill" size={20} color={PEACH} />
@@ -180,11 +109,8 @@ export default function AdminScreen() {
               <Pressable 
                 style={styles.menuItem} 
                 onPress={() => {
-                  console.log("📖 Mobile Menu: Menu clicked");
                   setMenuOpen(false);
-                  Alert.alert("Menu Management", "Navigating to menu...", [
-                    { text: "OK", onPress: () => router.push("/admin_menu" as any) }
-                  ]);
+                  router.push("/admin_menu");
                 }}
               >
                 <IconSymbol name="book.fill" size={20} color={PEACH} />
@@ -194,11 +120,8 @@ export default function AdminScreen() {
               <Pressable 
                 style={styles.menuItem} 
                 onPress={() => {
-                  console.log("👥 Mobile Menu: Users clicked");
                   setMenuOpen(false);
-                  Alert.alert("User Management", "Navigating to users...", [
-                    { text: "OK", onPress: () => router.push("/admin_users" as any) }
-                  ]);
+                  router.push("/admin_users");
                 }}
               >
                 <IconSymbol name="person.2.fill" size={20} color={PEACH} />
@@ -208,11 +131,8 @@ export default function AdminScreen() {
               <Pressable 
                 style={styles.menuItem} 
                 onPress={() => {
-                  console.log("📊 Mobile Menu: Analytics clicked");
                   setMenuOpen(false);
-                  Alert.alert("Analytics", "Navigating to analytics...", [
-                    { text: "OK", onPress: () => router.push("/admin_analytics" as any) }
-                  ]);
+                  router.push("/admin_analytics");
                 }}
               >
                 <IconSymbol name="chart.bar.fill" size={20} color={PEACH} />
@@ -222,26 +142,12 @@ export default function AdminScreen() {
               <Pressable 
                 style={styles.menuItem} 
                 onPress={() => {
-                  console.log("⚙️ Mobile Menu: Settings clicked");
                   setMenuOpen(false);
-                  Alert.alert("Settings", "Navigating to settings...", [
-                    { text: "OK", onPress: () => router.push("/admin_settings" as any) }
-                  ]);
+                  router.push("/admin_settings");
                 }}
               >
                 <IconSymbol name="gearshape.fill" size={20} color={PEACH} />
                 <Text style={styles.menuItemText}>Settings</Text>
-              </Pressable>
-
-              <Pressable 
-                style={[styles.menuItem, { marginTop: 20, backgroundColor: 'rgba(231, 196, 163, 0.1)' }]} 
-                onPress={() => {
-                  setMenuOpen(false);
-                  handleLogout();
-                }}
-              >
-                <IconSymbol name="arrow.right.square" size={20} color={PEACH} />
-                <Text style={styles.menuItemText}>Logout</Text>
               </Pressable>
             </View>
           </View>
@@ -256,25 +162,14 @@ export default function AdminScreen() {
         <View style={styles.header}>
           <View style={styles.headerTop}>
             <View>
-              <Text style={styles.greeting}>Welcome back, {user?.firstName || 'Owner'}! 👋</Text>
+              <Text style={styles.greeting}>Welcome back, Owner! 👋</Text>
               <Text style={styles.subtitle}>
                 Here's what's happening today
               </Text>
             </View>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-              <View style={styles.badge}>
-                <IconSymbol name="shield.fill" size={16} color={PEACH} />
-                <Text style={styles.badgeText}>Admin</Text>
-              </View>
-              {Platform.OS !== 'android' && (
-                <Pressable 
-                  onPress={handleLogout}
-                  style={styles.logoutBtn}
-                >
-                  <IconSymbol name="arrow.right.square" size={18} color={BG} />
-                  <Text style={styles.logoutText}>LOGOUT</Text>
-                </Pressable>
-              )}
+            <View style={styles.badge}>
+              <IconSymbol name="shield.fill" size={16} color={PEACH} />
+              <Text style={styles.badgeText}>Admin</Text>
             </View>
           </View>
         </View>
@@ -293,25 +188,14 @@ export default function AdminScreen() {
             <View style={[styles.statIconContainer, { backgroundColor: PEACH }]}>
               <IconSymbol name="dollarsign.circle.fill" size={20} color={BG} />
             </View>
-            <Text style={styles.statValue}>${stats.todayRevenue.toFixed(2)}</Text>
+            <Text style={styles.statValue}>${stats.todayRevenue}</Text>
             <Text style={styles.statLabel}>Today's Revenue</Text>
-          </View>
-          
-          <View style={styles.statCard}>
-            <View style={[styles.statIconContainer, { backgroundColor: PEACH }]}>
-              <IconSymbol name="person.2.fill" size={20} color={BG} />
-            </View>
-            <Text style={styles.statValue}>{stats.totalUsers}</Text>
-            <Text style={styles.statLabel}>Total Users</Text>
           </View>
         </View>
 
         {/* Main Management Cards */}
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>Management</Text>
-          <Pressable onPress={() => loadAdminData(false)}>
-            <IconSymbol name="arrow.clockwise" size={20} color={PEACH} />
-          </Pressable>
         </View>
 
         <View style={styles.cardsContainer}>
@@ -322,10 +206,7 @@ export default function AdminScreen() {
               pressed && styles.cardPressed,
             ]}
             onPress={() => {
-              console.log("📦 Order Management button clicked");
-              Alert.alert("Order Management", "Navigating to order management...", [
-                { text: "OK", onPress: () => router.push("/admin_new" as any) }
-              ]);
+              router.push("/admin_new");
             }}
           >
             <View style={styles.primaryCardHeader}>
@@ -365,10 +246,7 @@ export default function AdminScreen() {
               pressed && styles.cardPressed,
             ]}
             onPress={() => {
-              console.log("📖 Menu Management button clicked");
-              Alert.alert("Menu Management", "Navigating to menu management...", [
-                { text: "OK", onPress: () => router.push("/admin_menu" as any) }
-              ]);
+              router.push("/admin_menu");
             }}
           >
             <View style={styles.cardRow}>
@@ -392,10 +270,7 @@ export default function AdminScreen() {
               pressed && styles.cardPressed,
             ]}
             onPress={() => {
-              console.log("👥 User Management button clicked");
-              Alert.alert("User Management", "Navigating to user management...", [
-                { text: "OK", onPress: () => router.push("/admin_users" as any) }
-              ]);
+              router.push("/admin_users");
             }}
           >
             <View style={styles.cardRow}>
@@ -419,10 +294,7 @@ export default function AdminScreen() {
               pressed && styles.cardPressed,
             ]}
             onPress={() => {
-              console.log("📊 Analytics button clicked");
-              Alert.alert("Analytics", "Navigating to analytics...", [
-                { text: "OK", onPress: () => router.push("/admin_analytics" as any) }
-              ]);
+              router.push("/admin_analytics");
             }}
           >
             <View style={styles.cardRow}>
@@ -446,10 +318,7 @@ export default function AdminScreen() {
               pressed && styles.cardPressed,
             ]}
             onPress={() => {
-              console.log("⚙️ Settings button clicked");
-              Alert.alert("Settings", "Navigating to settings...", [
-                { text: "OK", onPress: () => router.push("/admin_settings" as any) }
-              ]);
+              router.push("/admin_settings");
             }}
           >
             <View style={styles.cardRow}>
@@ -466,58 +335,6 @@ export default function AdminScreen() {
             </View>
           </Pressable>
         </View>
-
-        {/* Recent Orders Section */}
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Recent Orders</Text>
-        </View>
-
-        {refreshing && (
-          <ActivityIndicator size="small" color={PEACH} style={{ marginBottom: 8 }} />
-        )}
-
-        {orders.length === 0 && !refreshing && (
-          <Text style={{ color: MUTED, marginBottom: 16, textAlign: 'center' }}>
-            No orders found yet.
-          </Text>
-        )}
-
-        {orders.slice(0, 5).map((order) => (
-          <View key={order.orderId} style={styles.orderCard}>
-            <View style={styles.orderHeaderRow}>
-              <Text style={styles.orderId}>Order #{order.orderId}</Text>
-              <Text style={[styles.orderStatus, { 
-                color: order.status === 'PENDING' ? '#FFA500' : 
-                       order.status === 'CONFIRMED' ? '#4CAF50' : '#F44336' 
-              }]}>
-                {order.status}
-              </Text>
-            </View>
-            <Text style={styles.orderMeta}>
-              Placed: {new Date(order.orderDate).toLocaleString()}
-            </Text>
-            <Text style={styles.orderMeta}>
-              Total: ${Number(order.totalAmount).toFixed(2)}
-            </Text>
-
-            {order.status === "PENDING" && (
-              <View style={styles.orderActionsRow}>
-                <Pressable
-                  style={[styles.orderBtn, styles.orderAcceptBtn]}
-                  onPress={() => handleUpdateStatus(order.orderId, "CONFIRMED")}
-                >
-                  <Text style={styles.orderBtnText}>ACCEPT</Text>
-                </Pressable>
-                <Pressable
-                  style={[styles.orderBtn, styles.orderDeclineBtn]}
-                  onPress={() => handleUpdateStatus(order.orderId, "CANCELLED")}
-                >
-                  <Text style={styles.orderBtnText}>DECLINE</Text>
-                </Pressable>
-              </View>
-            )}
-          </View>
-        ))}
 
         {/* Back to Home Button */}
         <Pressable
@@ -837,26 +654,6 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   
-  // Logout Buttons
-  logoutIconBtn: {
-    padding: 8,
-  },
-  logoutBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    backgroundColor: PEACH,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 8,
-  },
-  logoutText: {
-    color: BG,
-    fontSize: 12,
-    fontWeight: "800",
-    letterSpacing: 0.5,
-  },
-  
   // Back Button
   backButton: {
     flexDirection: 'row',
@@ -888,64 +685,30 @@ const styles = StyleSheet.create({
     opacity: 0.5,
   },
   
-  // Loading
-  loadingContainer: {
+  // Access Denied
+  accessDeniedContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: 16,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 20,
   },
-  loadingText: {
-    color: TEXT,
-    fontSize: 16,
-  },
-  
-  // Orders
-  orderCard: {
-    backgroundColor: PANEL,
-    borderRadius: 12,
-    padding: 16,
+  accessDeniedTitle: {
+    fontSize: 28,
+    fontWeight: "bold",
+    marginTop: 24,
     marginBottom: 12,
-  },
-  orderHeaderRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 8,
-  },
-  orderId: {
-    fontSize: 16,
-    fontWeight: '700',
     color: TEXT,
   },
-  orderStatus: {
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  orderMeta: {
-    fontSize: 13,
+  accessDeniedText: {
+    fontSize: 16,
     color: MUTED,
-    marginBottom: 4,
+    textAlign: "center",
+    marginBottom: 24,
   },
-  orderActionsRow: {
-    flexDirection: 'row',
-    gap: 8,
-    marginTop: 12,
-  },
-  orderBtn: {
-    flex: 1,
-    paddingVertical: 10,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  orderAcceptBtn: {
-    backgroundColor: '#4CAF50',
-  },
-  orderDeclineBtn: {
-    backgroundColor: '#F44336',
-  },
-  orderBtnText: {
-    color: '#FFF',
+  redirectText: {
     fontSize: 14,
-    fontWeight: '700',
+    color: MUTED,
+    opacity: 0.6,
+    fontStyle: "italic",
   },
 });
