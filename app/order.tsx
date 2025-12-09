@@ -28,46 +28,8 @@ const MUTED = "rgba(255,255,255,0.72)";
 const STRIPE_PUBLISHABLE_KEY = Constants.expoConfig?.extra?.STRIPE_PUBLISHABLE_KEY || 'pk_test_51RuQcGD5NgT1fMvQG4A42qUssaRVNIqzCzJLkZQ1pHzu2r8ztJ6KUCwm7xcWxLvMsGgxSeKqxSiEbPz2yXmcRt5n00VdHdnaxP';
 const stripePromise = loadStripe(STRIPE_PUBLISHABLE_KEY);
 
-// Simple data model for your menu tiles
-const MENU_ITEMS = [
-  {
-    id: "protein-mac-bowl",
-    title: "Protein Mac Bowl",
-    subtitle: "Fries + Protein Mac & Cheese",
-    description: "Crispy Chicken Breast + Low-Cal Sauce",
-    price: "$15",
-    calories: "850 cal",
-    protein: "65g protein",
-    spicy: "spicy option also available!",
-  },
-  {
-    id: "chicken-sandwich-fries",
-    title: "Chicken Sandwich + Fries",
-    subtitle: "Crispy Chicken Breast Sandwich & Fries",
-    description: "Classic combo with a healthy twist.",
-    price: "$12",
-    calories: "800 cal",
-    protein: "60g protein",
-  },
-  {
-    id: "two-chicken-sandwiches",
-    title: "Two Chicken Sandwiches",
-    subtitle: "2 Crispy Chicken Breast Sandwiches",
-    description: "Double the protein, double the flavor.",
-    price: "$16",
-    calories: "1100 cal",
-    protein: "113g protein",
-  },
-  {
-    id: "two-chicken-sandwiches-fries",
-    title: "Two Chicken Sandwiches + Large Fries",
-    subtitle: "2 Crispy Chicken Breast Sandwiches & Large Fries",
-    description: "Perfect for sharing or a hearty meal.",
-    price: "$20",
-    calories: "1400 cal",
-    protein: "118g protein",
-  },
-];
+// Import menu service
+import { getFoodItems, FoodItem } from "@/services/menuService";
 
 function PaymentForm({ onPaymentSuccess, isProcessing, setIsProcessing, currentMeal, user, orderTime, specialNotes }) {
   const stripe = useStripe();
@@ -87,8 +49,8 @@ function PaymentForm({ onPaymentSuccess, isProcessing, setIsProcessing, currentM
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           userId: user.id,
-          mealTitle: currentMeal.title,
-          mealPrice: currentMeal.price,
+          mealTitle: currentMeal.name,
+          mealPrice: currentMeal.price.toFixed(2),
           orderTime: orderTime || "ASAP",
           specialNotes: specialNotes,
         }),
@@ -166,6 +128,26 @@ export default function ExploreScreen() {
   const [showPayment, setShowPayment] = React.useState(false);
   const [showConfirmation, setShowConfirmation] = React.useState(false);
   const [isProcessing, setIsProcessing] = React.useState(false);
+  const [menuItems, setMenuItems] = React.useState<FoodItem[]>([]);
+  const [loadingMenu, setLoadingMenu] = React.useState(true);
+
+  // Fetch menu items from API
+  React.useEffect(() => {
+    const fetchMenuItems = async () => {
+      try {
+        setLoadingMenu(true);
+        const items = await getFoodItems();
+        // Filter only available items and sort by category
+        const availableItems = items.filter(item => item.isAvailable);
+        setMenuItems(availableItems);
+      } catch (error) {
+        console.error("Error fetching menu items:", error);
+      } finally {
+        setLoadingMenu(false);
+      }
+    };
+    fetchMenuItems();
+  }, []);
 
   const handleLogout = async () => {
     try {
@@ -237,7 +219,7 @@ export default function ExploreScreen() {
     handleCloseModal();
   };
 
-  const currentMeal = MENU_ITEMS.find((item) => item.id === selectedMeal);
+  const currentMeal = menuItems.find((item) => item.foodItemId.toString() === selectedMeal);
 
   const tileBasis = isWide ? "48%" : isTablet ? "47%" : "100%";
 
@@ -321,30 +303,55 @@ export default function ExploreScreen() {
 
         {/* GRID OF MENU CARDS */}
         <View style={styles.gridWrapper}>
-          {MENU_ITEMS.map((item) => (
-            <View
-              key={item.id}
-              style={[styles.menuCard, { flexBasis: tileBasis }]}
-            >
-              {/* Placeholder for future food image */}
-              <View style={styles.cardImagePlaceholder}>
-                <Text style={styles.cardImageText}>Food Image</Text>
-              </View>
-
-              <View style={styles.cardBody}>
-                <Text style={styles.cardTitle}>{item.title}</Text>
-                <Text style={styles.cardSubtitle}>{item.subtitle}</Text>
-                <Text style={styles.cardDescription}>{item.description}</Text>
-
-                <Pressable
-                  style={styles.cardButton}
-                  onPress={() => handleStartOrder(item.id)}
-                >
-                  <Text style={styles.cardButtonText}>START ORDER</Text>
-                </Pressable>
-              </View>
+          {loadingMenu ? (
+            <View style={{ alignItems: 'center', padding: 40 }}>
+              <ActivityIndicator size="large" color={PEACH} />
+              <Text style={{ color: MUTED, marginTop: 16 }}>Loading menu...</Text>
             </View>
-          ))}
+          ) : menuItems.length === 0 ? (
+            <View style={{ alignItems: 'center', padding: 40 }}>
+              <Text style={{ color: MUTED, fontSize: 18 }}>No menu items available</Text>
+            </View>
+          ) : (
+            menuItems.map((item) => (
+              <View
+                key={item.foodItemId}
+                style={[styles.menuCard, { flexBasis: tileBasis }]}
+              >
+                {/* Placeholder for future food image */}
+                <View style={styles.cardImagePlaceholder}>
+                  {item.imageUrl ? (
+                    <Text style={styles.cardImageText}>Image</Text>
+                  ) : (
+                    <Text style={styles.cardImageText}>Food Image</Text>
+                  )}
+                </View>
+
+                <View style={styles.cardBody}>
+                  <Text style={styles.cardTitle}>{item.name}</Text>
+                  {item.description && (
+                    <Text style={styles.cardDescription}>{item.description}</Text>
+                  )}
+                  <View style={styles.cardNutrition}>
+                    {item.calories && (
+                      <Text style={styles.cardNutritionText}>{item.calories} cal</Text>
+                    )}
+                    {item.protein && (
+                      <Text style={styles.cardNutritionText}>{item.protein}g protein</Text>
+                    )}
+                  </View>
+                  <Text style={styles.cardPrice}>${item.price.toFixed(2)}</Text>
+
+                  <Pressable
+                    style={styles.cardButton}
+                    onPress={() => handleStartOrder(item.foodItemId.toString())}
+                  >
+                    <Text style={styles.cardButtonText}>START ORDER</Text>
+                  </Pressable>
+                </View>
+              </View>
+            ))
+          )}
         </View>
 
         {/* FOOTER */}
@@ -365,24 +372,29 @@ export default function ExploreScreen() {
         >
           <View style={styles.modalOverlay}>
             <View style={styles.modalContent}>
-              <Text style={styles.modalTitle}>{currentMeal?.title}</Text>
+              <Text style={styles.modalTitle}>{currentMeal?.name}</Text>
               
               <View style={styles.modalSection}>
                 <Text style={styles.modalLabel}>Price</Text>
-                <Text style={styles.modalValue}>{currentMeal?.price}</Text>
+                <Text style={styles.modalValue}>${currentMeal?.price.toFixed(2)}</Text>
               </View>
 
               <View style={styles.modalSection}>
                 <Text style={styles.modalLabel}>Nutrition</Text>
                 <Text style={styles.modalValue}>
-                  {currentMeal?.calories} • {currentMeal?.protein}
+                  {currentMeal?.calories && `${currentMeal.calories} cal`}
+                  {currentMeal?.protein && ` • ${currentMeal.protein}g protein`}
+                  {currentMeal?.carbohydrates && ` • ${currentMeal.carbohydrates}g carbs`}
+                  {currentMeal?.fat && ` • ${currentMeal.fat}g fat`}
                 </Text>
               </View>
 
-              <View style={styles.modalSection}>
-                <Text style={styles.modalLabel}>What&apos;s Included</Text>
-                <Text style={styles.modalValue}>{currentMeal?.description}</Text>
-              </View>
+              {currentMeal?.description && (
+                <View style={styles.modalSection}>
+                  <Text style={styles.modalLabel}>What&apos;s Included</Text>
+                  <Text style={styles.modalValue}>{currentMeal.description}</Text>
+                </View>
+              )}
 
               <View style={styles.modalSection}>
                 <Text style={styles.modalLabel}>Preferred Time</Text>
@@ -440,12 +452,12 @@ export default function ExploreScreen() {
               
               <View style={styles.confirmationSection}>
                 <Text style={styles.confirmationLabel}>Meal</Text>
-                <Text style={styles.confirmationValue}>{currentMeal?.title}</Text>
+                <Text style={styles.confirmationValue}>{currentMeal?.name}</Text>
               </View>
 
               <View style={styles.confirmationSection}>
                 <Text style={styles.confirmationLabel}>Price</Text>
-                <Text style={styles.confirmationValue}>{currentMeal?.price}</Text>
+                <Text style={styles.confirmationValue}>${currentMeal?.price.toFixed(2)}</Text>
               </View>
 
               <View style={styles.confirmationSection}>
@@ -492,11 +504,11 @@ export default function ExploreScreen() {
               <View style={styles.paymentSummary}>
                 <View style={styles.paymentSummaryRow}>
                   <Text style={styles.paymentSummaryLabel}>Meal</Text>
-                  <Text style={styles.paymentSummaryValue}>{currentMeal?.title}</Text>
+                  <Text style={styles.paymentSummaryValue}>{currentMeal?.name}</Text>
                 </View>
                 <View style={styles.paymentSummaryRow}>
                   <Text style={styles.paymentSummaryLabel}>Amount</Text>
-                  <Text style={styles.paymentSummaryValue}>{currentMeal?.price}</Text>
+                  <Text style={styles.paymentSummaryValue}>${currentMeal?.price.toFixed(2)}</Text>
                 </View>
               </View>
               <Elements stripe={stripePromise}>
@@ -650,6 +662,24 @@ const styles = StyleSheet.create({
     fontWeight: "800",
     fontSize: 12,
     letterSpacing: 0.5,
+  },
+  cardNutrition: {
+    flexDirection: "row",
+    gap: 12,
+    marginTop: 8,
+    marginBottom: 4,
+  },
+  cardNutritionText: {
+    color: MUTED,
+    fontSize: 12,
+    fontWeight: "600",
+  },
+  cardPrice: {
+    color: PEACH,
+    fontSize: 20,
+    fontWeight: "800",
+    marginTop: 8,
+    marginBottom: 8,
   },
 
   // FOOTER
