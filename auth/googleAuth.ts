@@ -7,23 +7,23 @@ import { useAuth } from "@/auth/AuthContext";
 import Constants from "expo-constants";
 import { useRouter } from "expo-router";
 
-// Required for web: completes the auth redirect flow and resolves the response
 WebBrowser.maybeCompleteAuthSession();
 
 const extra =
   (Constants.expoConfig && Constants.expoConfig.extra) ||
   (Constants.manifest && Constants.manifest.extra) ||
   {};
-// Only use platform-specific IDs from app.config.js -> .env
+
 const GOOGLE_WEB_CLIENT_ID = extra.GOOGLE_WEB_CLIENT_ID;
 const GOOGLE_ANDROID_CLIENT_ID = extra.GOOGLE_ANDROID_CLIENT_ID;
 const GOOGLE_IOS_CLIENT_ID = extra.GOOGLE_IOS_CLIENT_ID;
-const API_BASE = extra.API_BASE || "https://gaelcraves-backend-256f85b120e2.herokuapp.com";
+const API_BASE =
+  extra.API_BASE || "https://gaelcraves-backend-256f85b120e2.herokuapp.com";
 
-console.log('[googleAuth] GOOGLE_WEB_CLIENT_ID=', GOOGLE_WEB_CLIENT_ID);
-console.log('[googleAuth] GOOGLE_ANDROID_CLIENT_ID=', GOOGLE_ANDROID_CLIENT_ID);
-console.log('[googleAuth] GOOGLE_IOS_CLIENT_ID=', GOOGLE_IOS_CLIENT_ID);
-console.log('[googleAuth] API_BASE=', API_BASE);
+console.log("[googleAuth] GOOGLE_WEB_CLIENT_ID=", GOOGLE_WEB_CLIENT_ID);
+console.log("[googleAuth] GOOGLE_ANDROID_CLIENT_ID=", GOOGLE_ANDROID_CLIENT_ID);
+console.log("[googleAuth] GOOGLE_IOS_CLIENT_ID=", GOOGLE_IOS_CLIENT_ID);
+console.log("[googleAuth] API_BASE=", API_BASE);
 
 export const PROXY_REDIRECT_URI = makeRedirectUri({ useProxy: true } as any);
 export const NON_PROXY_REDIRECT_URI = makeRedirectUri({
@@ -33,10 +33,13 @@ export const NON_PROXY_REDIRECT_URI = makeRedirectUri({
 export function useGoogleLogin() {
   const { setUser } = useAuth();
   const router = useRouter();
-  // Use the Expo proxy for native (Expo Go) and a non-proxy redirect for web.
   const useProxy = Platform.OS !== "web";
 
-  const redirectUri = makeRedirectUri({ useProxy } as any);
+  // For web on Heroku, use the full URL with trailing slash
+  const redirectUri =
+    Platform.OS === "web"
+      ? "https://gaelcraves-frontend-7a6e5c03f69a.herokuapp.com"
+      : makeRedirectUri({ useProxy } as any);
 
   console.log(
     "[googleAuth] chosen redirectUri=",
@@ -46,19 +49,21 @@ export function useGoogleLogin() {
   );
 
   const [request, response, promptAsync] = Google.useAuthRequest({
-    // Provide platform-specific IDs; web requires webClientId specifically
     webClientId: GOOGLE_WEB_CLIENT_ID,
     androidClientId: GOOGLE_ANDROID_CLIENT_ID,
     iosClientId: GOOGLE_IOS_CLIENT_ID,
     redirectUri,
-    // Use OIDC id_token on web to avoid client_secret exchange
     responseType: "id_token" as any,
     usePKCE: false,
     scopes: ["openid", "profile", "email"],
+    // Add these parameters to help with state management
+    extraParams: {
+      access_type: "offline",
+      prompt: "select_account",
+    },
   });
 
   useEffect(() => {
-    // Debug: show raw response object states
     if (typeof window !== "undefined") {
       console.log("[googleAuth] effect fired. response=", response);
     }
@@ -79,38 +84,43 @@ export function useGoogleLogin() {
             decoded.email || decoded.preferred_username || decoded.sub;
           const firstName = decoded.given_name || "";
           const lastName = decoded.family_name || "";
-          
+
           if (emailFromId) {
             // Send id_token to backend to get or create user and receive JWT
             (async () => {
               try {
-                console.log("[googleAuth] Sending id_token to backend for verification");
+                console.log(
+                  "[googleAuth] Sending id_token to backend for verification"
+                );
                 const resp = await fetch(`${API_BASE}/api/v1/auth/google`, {
                   method: "POST",
                   headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({ 
+                  body: JSON.stringify({
                     idToken,
                     email: emailFromId,
                     firstName,
-                    lastName
+                    lastName,
                   }),
                 });
-                
+
                 if (!resp.ok) {
                   console.warn("Backend Google auth failed", resp.status);
                   // Fallback to minimal user data
-                  setUser({ 
+                  setUser({
                     email: emailFromId,
                     firstName,
-                    lastName
+                    lastName,
                   });
                   router.replace("/");
                   return;
                 }
-                
+
                 const userData = await resp.json();
-                console.log("[googleAuth] Received user data from backend:", userData);
-                
+                console.log(
+                  "[googleAuth] Received user data from backend:",
+                  userData
+                );
+
                 // Store complete user data with token
                 setUser({
                   id: userData.userId || userData.id,
@@ -118,22 +128,22 @@ export function useGoogleLogin() {
                   firstName: userData.firstName || firstName,
                   lastName: userData.lastName || lastName,
                   roles: userData.roles || [],
-                  token: userData.token
+                  token: userData.token,
                 });
-                
+
                 // Store token separately for API calls
-                if (userData.token && typeof window !== 'undefined') {
-                  window.localStorage.setItem('@token', userData.token);
+                if (userData.token && typeof window !== "undefined") {
+                  window.localStorage.setItem("@token", userData.token);
                 }
-                
+
                 router.replace("/");
               } catch (e) {
                 console.warn("Failed to verify with backend", e);
                 // Fallback to minimal user data
-                setUser({ 
+                setUser({
                   email: emailFromId,
                   firstName,
-                  lastName
+                  lastName,
                 });
                 router.replace("/");
               }
@@ -159,15 +169,18 @@ export function useGoogleLogin() {
               return;
             }
             const userData = await resp.json();
-            console.log("[googleAuth] Received user data from backend (code exchange):", userData);
-            
+            console.log(
+              "[googleAuth] Received user data from backend (code exchange):",
+              userData
+            );
+
             // Store complete user data with token
             const email =
               userData.email ||
               userData.email_address ||
               userData.preferred_email ||
               userData.emailAddress;
-              
+
             if (email) {
               setUser({
                 id: userData.userId || userData.id,
@@ -175,14 +188,14 @@ export function useGoogleLogin() {
                 firstName: userData.firstName || "",
                 lastName: userData.lastName || "",
                 roles: userData.roles || [],
-                token: userData.token
+                token: userData.token,
               });
-              
+
               // Store token separately for API calls
-              if (userData.token && typeof window !== 'undefined') {
-                window.localStorage.setItem('@token', userData.token);
+              if (userData.token && typeof window !== "undefined") {
+                window.localStorage.setItem("@token", userData.token);
               }
-              
+
               // Navigate to home without reloading
               try {
                 router.replace("/");
@@ -226,57 +239,62 @@ export function useGoogleLogin() {
               decoded.email || decoded.preferred_username || decoded.sub;
             const firstName = decoded.given_name || "";
             const lastName = decoded.family_name || "";
-            
+
             if (emailFromId) {
               // Send id_token to backend to get or create user and receive JWT
               (async () => {
                 try {
-                  console.log("[googleAuth] Sending id_token to backend for verification (URL path)");
+                  console.log(
+                    "[googleAuth] Sending id_token to backend for verification (URL path)"
+                  );
                   const resp = await fetch(`${API_BASE}/api/v1/auth/google`, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ 
+                    body: JSON.stringify({
                       idToken: idTokenFromUrl,
                       email: emailFromId,
                       firstName,
-                      lastName
+                      lastName,
                     }),
                   });
-                  
+
                   if (!resp.ok) {
                     console.warn("Backend Google auth failed", resp.status);
-                    setUser({ 
+                    setUser({
                       email: emailFromId,
                       firstName,
-                      lastName
+                      lastName,
                     });
                     router.replace("/");
                     return;
                   }
-                  
+
                   const userData = await resp.json();
-                  console.log("[googleAuth] Received user data from backend (URL path):", userData);
-                  
+                  console.log(
+                    "[googleAuth] Received user data from backend (URL path):",
+                    userData
+                  );
+
                   setUser({
                     id: userData.userId || userData.id,
                     email: userData.email || emailFromId,
                     firstName: userData.firstName || firstName,
                     lastName: userData.lastName || lastName,
                     roles: userData.roles || [],
-                    token: userData.token
+                    token: userData.token,
                   });
-                  
-                  if (userData.token && typeof window !== 'undefined') {
-                    window.localStorage.setItem('@token', userData.token);
+
+                  if (userData.token && typeof window !== "undefined") {
+                    window.localStorage.setItem("@token", userData.token);
                   }
-                  
+
                   router.replace("/");
                 } catch (e) {
                   console.warn("Failed to verify with backend (URL path)", e);
-                  setUser({ 
+                  setUser({
                     email: emailFromId,
                     firstName,
-                    lastName
+                    lastName,
                   });
                   router.replace("/");
                 }
@@ -302,13 +320,16 @@ export function useGoogleLogin() {
                 return;
               }
               const userData = await resp.json();
-              console.log("[googleAuth] Received user data from backend (URL code path):", userData);
-              
+              console.log(
+                "[googleAuth] Received user data from backend (URL code path):",
+                userData
+              );
+
               const email =
                 userData.email ||
                 userData.email_address ||
                 userData.preferred_email;
-                
+
               if (email) {
                 setUser({
                   id: userData.userId || userData.id,
@@ -316,13 +337,13 @@ export function useGoogleLogin() {
                   firstName: userData.firstName || "",
                   lastName: userData.lastName || "",
                   roles: userData.roles || [],
-                  token: userData.token
+                  token: userData.token,
                 });
-                
-                if (userData.token && typeof window !== 'undefined') {
-                  window.localStorage.setItem('@token', userData.token);
+
+                if (userData.token && typeof window !== "undefined") {
+                  window.localStorage.setItem("@token", userData.token);
                 }
-                
+
                 try {
                   router.replace("/");
                 } catch {}
