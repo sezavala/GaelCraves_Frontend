@@ -111,27 +111,57 @@ export default function AdminScreen() {
                 <Text style={styles.menuItemText}>Home</Text>
               </Pressable>
               
-              <Pressable style={styles.menuItem} onPress={() => setMenuOpen(false)}>
+              <Pressable 
+                style={styles.menuItem} 
+                onPress={() => {
+                  setMenuOpen(false);
+                  router.push("/admin_new" as any);
+                }}
+              >
                 <IconSymbol name="bag.fill" size={20} color={PEACH} />
                 <Text style={styles.menuItemText}>Orders ({stats.pendingOrders})</Text>
               </Pressable>
               
-              <Pressable style={styles.menuItem} onPress={() => setMenuOpen(false)}>
+              <Pressable 
+                style={styles.menuItem} 
+                onPress={() => {
+                  setMenuOpen(false);
+                  router.push("/admin_menu" as any);
+                }}
+              >
                 <IconSymbol name="book.fill" size={20} color={PEACH} />
                 <Text style={styles.menuItemText}>Menu ({stats.menuItems})</Text>
               </Pressable>
               
-              <Pressable style={styles.menuItem} onPress={() => setMenuOpen(false)}>
+              <Pressable 
+                style={styles.menuItem} 
+                onPress={() => {
+                  setMenuOpen(false);
+                  router.push("/admin_users" as any);
+                }}
+              >
                 <IconSymbol name="person.2.fill" size={20} color={PEACH} />
                 <Text style={styles.menuItemText}>Users ({stats.totalUsers})</Text>
               </Pressable>
               
-              <Pressable style={styles.menuItem} onPress={() => setMenuOpen(false)}>
+              <Pressable 
+                style={styles.menuItem} 
+                onPress={() => {
+                  setMenuOpen(false);
+                  router.push("/admin_analytics" as any);
+                }}
+              >
                 <IconSymbol name="chart.bar.fill" size={20} color={PEACH} />
                 <Text style={styles.menuItemText}>Analytics</Text>
               </Pressable>
               
-              <Pressable style={styles.menuItem} onPress={() => setMenuOpen(false)}>
+              <Pressable 
+                style={styles.menuItem} 
+                onPress={() => {
+                  setMenuOpen(false);
+                  router.push("/admin_settings" as any);
+                }}
+              >
                 <IconSymbol name="gearshape.fill" size={20} color={PEACH} />
                 <Text style={styles.menuItemText}>Settings</Text>
               </Pressable>
@@ -214,7 +244,7 @@ export default function AdminScreen() {
               pressed && styles.cardPressed,
             ]}
             onPress={() => {
-              // Navigate to orders management
+              router.push("/admin_new" as any);
             }}
           >
             <View style={styles.primaryCardHeader}>
@@ -254,7 +284,7 @@ export default function AdminScreen() {
               pressed && styles.cardPressed,
             ]}
             onPress={() => {
-              // Navigate to menu management
+              router.push("/admin_menu" as any);
             }}
           >
             <View style={styles.cardRow}>
@@ -278,7 +308,7 @@ export default function AdminScreen() {
               pressed && styles.cardPressed,
             ]}
             onPress={() => {
-              // Navigate to user management
+              router.push("/admin_users" as any);
             }}
           >
             <View style={styles.cardRow}>
@@ -302,7 +332,7 @@ export default function AdminScreen() {
               pressed && styles.cardPressed,
             ]}
             onPress={() => {
-              // Navigate to analytics
+              router.push("/admin_analytics" as any);
             }}
           >
             <View style={styles.cardRow}>
@@ -326,7 +356,7 @@ export default function AdminScreen() {
               pressed && styles.cardPressed,
             ]}
             onPress={() => {
-              // Navigate to settings
+              router.push("/admin_settings" as any);
             }}
           >
             <View style={styles.cardRow}>
