@@ -1,9 +1,16 @@
 import React, { useEffect, useState } from "react";
-import { StyleSheet, View, Pressable, ScrollView, Platform, SafeAreaView, Text, Alert } from "react-native";
+import { StyleSheet, View, Pressable, ScrollView, Platform, SafeAreaView, Text, Alert, ActivityIndicator } from "react-native";
 import { useRouter } from "expo-router";
 import { useAdminContext } from "@/auth/AdminContext";
 import { useAuth } from "@/auth/AuthContext";
 import { IconSymbol } from "@/components/ui/icon-symbol";
+import {
+  getAdminStats,
+  getAllOrders,
+  Order,
+  updateOrderStatus,
+  AdminStats,
+} from "@/services/adminService";
 
 // Colors matching home page
 const BG = "#0B1313";
@@ -18,14 +25,61 @@ export default function AdminScreen() {
   const { user, logout } = useAuth();
   const router = useRouter();
   const [menuOpen, setMenuOpen] = useState(false);
-
-  // Mock stats - replace with real data from your backend
-  const [stats, setStats] = useState({
-    pendingOrders: 12,
-    todayRevenue: 1247.50,
-    totalUsers: 348,
-    menuItems: 67,
+  const [stats, setStats] = useState<AdminStats>({
+    pendingOrders: 0,
+    todayRevenue: 0,
+    totalUsers: 0,
+    totalAdmins: 0,
+    menuItems: 0,
   });
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+
+  // Load real data from backend
+  const loadAdminData = async (showLoader = true) => {
+    if (!isAdmin) return;
+
+    try {
+      if (showLoader) setLoading(true);
+      setRefreshing(true);
+
+      console.log("📊 Loading admin dashboard data...");
+      
+      const [statsData, ordersData] = await Promise.all([
+        getAdminStats(),
+        getAllOrders(),
+      ]);
+
+      console.log("✅ Admin data loaded:", { statsData, ordersCount: ordersData.length });
+      setStats(statsData);
+      setOrders(ordersData);
+    } catch (error: any) {
+      console.error("❌ Failed to load admin data:", error);
+      Alert.alert("Error", error.message || "Failed to load admin data");
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
+
+  const handleUpdateStatus = async (
+    orderId: number,
+    action: "CONFIRMED" | "CANCELLED"
+  ) => {
+    try {
+      console.log(`📝 Updating order ${orderId} to ${action}`);
+      await updateOrderStatus(orderId, action);
+      
+      Alert.alert("Success", `Order ${action.toLowerCase()} successfully`);
+      
+      // Reload data to get fresh stats and orders
+      await loadAdminData(false);
+    } catch (error: any) {
+      console.error("❌ Failed to update order:", error);
+      Alert.alert("Error", error.message || "Failed to update order status");
+    }
+  };
 
   const handleLogout = async () => {
     try {
@@ -40,25 +94,23 @@ export default function AdminScreen() {
 
   useEffect(() => {
     if (!isAdmin) {
-      const timer = setTimeout(() => {
-        router.replace("/(tabs)");
-      }, 2000);
-      return () => clearTimeout(timer);
+      Alert.alert("Access Denied", "You don't have admin privileges");
+      router.replace("/(tabs)");
+    } else {
+      loadAdminData();
     }
   }, [isAdmin, router]);
 
   if (!isAdmin) {
+    return null;
+  }
+
+  if (loading) {
     return (
       <SafeAreaView style={styles.container}>
-        <View style={styles.accessDeniedContainer}>
-          <IconSymbol name="exclamationmark.triangle.fill" size={64} color={PEACH} />
-          <Text style={styles.accessDeniedTitle}>Access Denied</Text>
-          <Text style={styles.accessDeniedText}>
-            You don't have permission to access this page.
-          </Text>
-          <Text style={styles.redirectText}>
-            Redirecting to home...
-          </Text>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={PEACH} />
+          <Text style={styles.loadingText}>Loading admin dashboard...</Text>
         </View>
       </SafeAreaView>
     );
@@ -241,14 +293,25 @@ export default function AdminScreen() {
             <View style={[styles.statIconContainer, { backgroundColor: PEACH }]}>
               <IconSymbol name="dollarsign.circle.fill" size={20} color={BG} />
             </View>
-            <Text style={styles.statValue}>${stats.todayRevenue}</Text>
+            <Text style={styles.statValue}>${stats.todayRevenue.toFixed(2)}</Text>
             <Text style={styles.statLabel}>Today's Revenue</Text>
+          </View>
+          
+          <View style={styles.statCard}>
+            <View style={[styles.statIconContainer, { backgroundColor: PEACH }]}>
+              <IconSymbol name="person.2.fill" size={20} color={BG} />
+            </View>
+            <Text style={styles.statValue}>{stats.totalUsers}</Text>
+            <Text style={styles.statLabel}>Total Users</Text>
           </View>
         </View>
 
         {/* Main Management Cards */}
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>Management</Text>
+          <Pressable onPress={() => loadAdminData(false)}>
+            <IconSymbol name="arrow.clockwise" size={20} color={PEACH} />
+          </Pressable>
         </View>
 
         <View style={styles.cardsContainer}>
@@ -403,6 +466,58 @@ export default function AdminScreen() {
             </View>
           </Pressable>
         </View>
+
+        {/* Recent Orders Section */}
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>Recent Orders</Text>
+        </View>
+
+        {refreshing && (
+          <ActivityIndicator size="small" color={PEACH} style={{ marginBottom: 8 }} />
+        )}
+
+        {orders.length === 0 && !refreshing && (
+          <Text style={{ color: MUTED, marginBottom: 16, textAlign: 'center' }}>
+            No orders found yet.
+          </Text>
+        )}
+
+        {orders.slice(0, 5).map((order) => (
+          <View key={order.orderId} style={styles.orderCard}>
+            <View style={styles.orderHeaderRow}>
+              <Text style={styles.orderId}>Order #{order.orderId}</Text>
+              <Text style={[styles.orderStatus, { 
+                color: order.status === 'PENDING' ? '#FFA500' : 
+                       order.status === 'CONFIRMED' ? '#4CAF50' : '#F44336' 
+              }]}>
+                {order.status}
+              </Text>
+            </View>
+            <Text style={styles.orderMeta}>
+              Placed: {new Date(order.orderDate).toLocaleString()}
+            </Text>
+            <Text style={styles.orderMeta}>
+              Total: ${Number(order.totalAmount).toFixed(2)}
+            </Text>
+
+            {order.status === "PENDING" && (
+              <View style={styles.orderActionsRow}>
+                <Pressable
+                  style={[styles.orderBtn, styles.orderAcceptBtn]}
+                  onPress={() => handleUpdateStatus(order.orderId, "CONFIRMED")}
+                >
+                  <Text style={styles.orderBtnText}>ACCEPT</Text>
+                </Pressable>
+                <Pressable
+                  style={[styles.orderBtn, styles.orderDeclineBtn]}
+                  onPress={() => handleUpdateStatus(order.orderId, "CANCELLED")}
+                >
+                  <Text style={styles.orderBtnText}>DECLINE</Text>
+                </Pressable>
+              </View>
+            )}
+          </View>
+        ))}
 
         {/* Back to Home Button */}
         <Pressable
@@ -773,30 +888,64 @@ const styles = StyleSheet.create({
     opacity: 0.5,
   },
   
-  // Access Denied
-  accessDeniedContainer: {
+  // Loading
+  loadingContainer: {
     flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    padding: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 16,
   },
-  accessDeniedTitle: {
-    fontSize: 28,
-    fontWeight: "bold",
-    marginTop: 24,
+  loadingText: {
+    color: TEXT,
+    fontSize: 16,
+  },
+  
+  // Orders
+  orderCard: {
+    backgroundColor: PANEL,
+    borderRadius: 12,
+    padding: 16,
     marginBottom: 12,
+  },
+  orderHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
+  orderId: {
+    fontSize: 16,
+    fontWeight: '700',
     color: TEXT,
   },
-  accessDeniedText: {
-    fontSize: 16,
-    color: MUTED,
-    textAlign: "center",
-    marginBottom: 24,
-  },
-  redirectText: {
+  orderStatus: {
     fontSize: 14,
+    fontWeight: '600',
+  },
+  orderMeta: {
+    fontSize: 13,
     color: MUTED,
-    opacity: 0.6,
-    fontStyle: "italic",
+    marginBottom: 4,
+  },
+  orderActionsRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 12,
+  },
+  orderBtn: {
+    flex: 1,
+    paddingVertical: 10,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  orderAcceptBtn: {
+    backgroundColor: '#4CAF50',
+  },
+  orderDeclineBtn: {
+    backgroundColor: '#F44336',
+  },
+  orderBtnText: {
+    color: '#FFF',
+    fontSize: 14,
+    fontWeight: '700',
   },
 });
