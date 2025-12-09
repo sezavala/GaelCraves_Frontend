@@ -114,8 +114,11 @@ export default function AdminScreen() {
               <Pressable 
                 style={styles.menuItem} 
                 onPress={() => {
+                  console.log("📦 Mobile Menu: Orders clicked");
                   setMenuOpen(false);
-                  router.push("/admin_new" as any);
+                  Alert.alert("Order Management", "Navigating to orders...", [
+                    { text: "OK", onPress: () => router.push("/admin_new" as any) }
+                  ]);
                 }}
               >
                 <IconSymbol name="bag.fill" size={20} color={PEACH} />
@@ -125,8 +128,11 @@ export default function AdminScreen() {
               <Pressable 
                 style={styles.menuItem} 
                 onPress={() => {
+                  console.log("📖 Mobile Menu: Menu clicked");
                   setMenuOpen(false);
-                  router.push("/admin_menu" as any);
+                  Alert.alert("Menu Management", "Navigating to menu...", [
+                    { text: "OK", onPress: () => router.push("/admin_menu" as any) }
+                  ]);
                 }}
               >
                 <IconSymbol name="book.fill" size={20} color={PEACH} />
@@ -136,8 +142,11 @@ export default function AdminScreen() {
               <Pressable 
                 style={styles.menuItem} 
                 onPress={() => {
+                  console.log("👥 Mobile Menu: Users clicked");
                   setMenuOpen(false);
-                  router.push("/admin_users" as any);
+                  Alert.alert("User Management", "Navigating to users...", [
+                    { text: "OK", onPress: () => router.push("/admin_users" as any) }
+                  ]);
                 }}
               >
                 <IconSymbol name="person.2.fill" size={20} color={PEACH} />
@@ -147,8 +156,11 @@ export default function AdminScreen() {
               <Pressable 
                 style={styles.menuItem} 
                 onPress={() => {
+                  console.log("📊 Mobile Menu: Analytics clicked");
                   setMenuOpen(false);
-                  router.push("/admin_analytics" as any);
+                  Alert.alert("Analytics", "Navigating to analytics...", [
+                    { text: "OK", onPress: () => router.push("/admin_analytics" as any) }
+                  ]);
                 }}
               >
                 <IconSymbol name="chart.bar.fill" size={20} color={PEACH} />
@@ -158,8 +170,11 @@ export default function AdminScreen() {
               <Pressable 
                 style={styles.menuItem} 
                 onPress={() => {
+                  console.log("⚙️ Mobile Menu: Settings clicked");
                   setMenuOpen(false);
-                  router.push("/admin_settings" as any);
+                  Alert.alert("Settings", "Navigating to settings...", [
+                    { text: "OK", onPress: () => router.push("/admin_settings" as any) }
+                  ]);
                 }}
               >
                 <IconSymbol name="gearshape.fill" size={20} color={PEACH} />
@@ -244,7 +259,10 @@ export default function AdminScreen() {
               pressed && styles.cardPressed,
             ]}
             onPress={() => {
-              router.push("/admin_new" as any);
+              console.log("📦 Order Management button clicked");
+              Alert.alert("Order Management", "Navigating to order management...", [
+                { text: "OK", onPress: () => router.push("/admin_new" as any) }
+              ]);
             }}
           >
             <View style={styles.primaryCardHeader}>
@@ -284,7 +302,10 @@ export default function AdminScreen() {
               pressed && styles.cardPressed,
             ]}
             onPress={() => {
-              router.push("/admin_menu" as any);
+              console.log("📖 Menu Management button clicked");
+              Alert.alert("Menu Management", "Navigating to menu management...", [
+                { text: "OK", onPress: () => router.push("/admin_menu" as any) }
+              ]);
             }}
           >
             <View style={styles.cardRow}>
@@ -308,7 +329,10 @@ export default function AdminScreen() {
               pressed && styles.cardPressed,
             ]}
             onPress={() => {
-              router.push("/admin_users" as any);
+              console.log("👥 User Management button clicked");
+              Alert.alert("User Management", "Navigating to user management...", [
+                { text: "OK", onPress: () => router.push("/admin_users" as any) }
+              ]);
             }}
           >
             <View style={styles.cardRow}>
@@ -332,7 +356,10 @@ export default function AdminScreen() {
               pressed && styles.cardPressed,
             ]}
             onPress={() => {
-              router.push("/admin_analytics" as any);
+              console.log("📊 Analytics button clicked");
+              Alert.alert("Analytics", "Navigating to analytics...", [
+                { text: "OK", onPress: () => router.push("/admin_analytics" as any) }
+              ]);
             }}
           >
             <View style={styles.cardRow}>
@@ -356,7 +383,10 @@ export default function AdminScreen() {
               pressed && styles.cardPressed,
             ]}
             onPress={() => {
-              router.push("/admin_settings" as any);
+              console.log("⚙️ Settings button clicked");
+              Alert.alert("Settings", "Navigating to settings...", [
+                { text: "OK", onPress: () => router.push("/admin_settings" as any) }
+              ]);
             }}
           >
             <View style={styles.cardRow}>
