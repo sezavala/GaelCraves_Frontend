@@ -66,9 +66,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (typeof window !== 'undefined' && window.localStorage) {
         if (u) {
           window.localStorage.setItem('@user', JSON.stringify(u));
-          console.log('💾 User saved to storage');
+          // Also store token separately for easier access
+          if (u.token) {
+            window.localStorage.setItem('@token', u.token);
+          }
+          console.log('💾 User saved to storage with token');
         } else {
           window.localStorage.removeItem('@user');
+          window.localStorage.removeItem('@token');
           console.log('🗑️ User removed from storage');
         }
       }

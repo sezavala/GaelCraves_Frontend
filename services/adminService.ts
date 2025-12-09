@@ -30,10 +30,20 @@ export interface AdminStats {
 async function authFetch(path: string, options: RequestInit = {}): Promise<Response> {
   let token: string | null = null;
   
-  // Try to get token from SecureStore (React Native) or localStorage (web)
+  // Try to get token from localStorage (stored in @user object)
   try {
     if (typeof window !== "undefined" && window.localStorage) {
+      // First try @token key
       token = window.localStorage.getItem("@token");
+      
+      // If not found, try to get from @user object
+      if (!token) {
+        const userStr = window.localStorage.getItem("@user");
+        if (userStr) {
+          const user = JSON.parse(userStr);
+          token = user.token;
+        }
+      }
     }
   } catch (e) {
     console.warn("Could not access token from storage:", e);
@@ -47,6 +57,9 @@ async function authFetch(path: string, options: RequestInit = {}): Promise<Respo
 
   if (token) {
     (headers as any).Authorization = `Bearer ${token}`;
+    console.log("🔐 Admin request with token to:", path);
+  } else {
+    console.warn("⚠️ Admin request WITHOUT token to:", path);
   }
 
   const res = await fetch(`${API_BASE_URL}${path}`, {
