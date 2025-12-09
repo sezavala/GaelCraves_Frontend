@@ -1,4 +1,7 @@
 import * as React from "react";
+import { Elements } from '@stripe/react-stripe-js';
+import { loadStripe } from '@stripe/stripe-js';
+import { CardElement, useStripe, useElements } from '@stripe/react-stripe-js';
 import {
   SafeAreaView,
   ScrollView,
@@ -11,15 +14,19 @@ import {
   Alert,
   Modal,
   TextInput,
+  ActivityIndicator,
 } from "react-native";
 import { Link, useRouter } from "expo-router";
 import { useAuth } from "@/auth/AuthContext";
+import Constants from 'expo-constants';
 
 const BG = "#0B1313";
 const PANEL = "#0E1717";
 const PEACH = "#E7C4A3";
 const TEXT = "rgba(255,255,255,0.92)";
 const MUTED = "rgba(255,255,255,0.72)";
+const STRIPE_PUBLISHABLE_KEY = Constants.expoConfig?.extra?.STRIPE_PUBLISHABLE_KEY || 'pk_test_51RuQcGD5NgT1fMvQG4A42qUssaRVNIqzCzJLkZQ1pHzu2r8ztJ6KUCwm7xcWxLvMsGgxSeKqxSiEbPz2yXmcRt5n00VdHdnaxP';
+const stripePromise = loadStripe(STRIPE_PUBLISHABLE_KEY);
 
 // Simple data model for your menu tiles
 const MENU_ITEMS = [
@@ -62,10 +69,93 @@ const MENU_ITEMS = [
   },
 ];
 
+function PaymentForm({ onPaymentSuccess, isProcessing, setIsProcessing, currentMeal, user, orderTime, specialNotes }) {
+  const stripe = useStripe();
+  const elements = useElements();
+
+  const handleStripePayment = async () => {
+    if (!stripe || !elements || !currentMeal || !user) {
+      Alert.alert("Error", "Missing payment information");
+      return;
+    }
+    setIsProcessing(true);
+    try {
+      // 1. Create PaymentIntent on backend
+      const API_BASE = Constants.expoConfig?.extra?.API_BASE || 'http://localhost:8080';
+      const intentRes = await fetch(`${API_BASE}/api/orders/create-payment-intent`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: user.id,
+          mealTitle: currentMeal.title,
+          mealPrice: currentMeal.price,
+          orderTime: orderTime || "ASAP",
+          specialNotes: specialNotes,
+        }),
+      });
+      const intentData = await intentRes.json();
+      if (!intentData.clientSecret) throw new Error('No client secret');
+
+      // 2. Confirm card payment
+      const cardElement = elements.getElement(CardElement);
+      const confirmRes = await stripe.confirmCardPayment(intentData.clientSecret, {
+        payment_method: {
+          card: cardElement,
+          billing_details: { name: user.name || 'Customer' },
+        },
+      });
+      if (confirmRes.error) {
+        Alert.alert("Error", confirmRes.error.message || "Payment failed");
+        setIsProcessing(false);
+        return;
+      }
+      if (confirmRes.paymentIntent && confirmRes.paymentIntent.status === 'succeeded') {
+        onPaymentSuccess();
+      } else {
+        Alert.alert("Error", "Payment not completed");
+      }
+      setIsProcessing(false);
+    } catch (err) {
+      Alert.alert("Error", err.message || "Payment failed");
+      setIsProcessing(false);
+    }
+  };
+
+  return (
+    <View style={{ width: '100%' }}>
+      <CardElement options={{ style: { base: { fontSize: '18px' } } }} />
+      <View style={styles.paymentButtons}>
+        <Pressable
+          style={[styles.paymentButton, styles.paymentButtonSecondary]}
+          onPress={() => setIsProcessing(false)}
+          disabled={isProcessing}
+        >
+          <Text style={styles.paymentButtonText}>CANCEL</Text>
+        </Pressable>
+        <Pressable
+          style={[
+            styles.paymentButton,
+            styles.paymentButtonPrimary,
+            isProcessing && styles.paymentButtonDisabled,
+          ]}
+          onPress={handleStripePayment}
+          disabled={isProcessing}
+        >
+          {isProcessing ? (
+            <ActivityIndicator color="#FFF" />
+          ) : (
+            <Text style={styles.paymentButtonText}>PAY NOW</Text>
+          )}
+        </Pressable>
+      </View>
+    </View>
+  );
+}
+
 export default function ExploreScreen() {
   const { width } = useWindowDimensions();
-  const isWide = width >= 1100; // 3 columns
-  const isTablet = width >= 700 && width < 1100; // 2 columns
+  const isWide = width >= 1100;
+  const isTablet = width >= 700 && width < 1100;
   const isMobile = width < 600;
   const { user, logout, isHydrated } = useAuth();
   const router = useRouter();
@@ -73,7 +163,9 @@ export default function ExploreScreen() {
   const [selectedMeal, setSelectedMeal] = React.useState<string | null>(null);
   const [orderTime, setOrderTime] = React.useState("");
   const [specialNotes, setSpecialNotes] = React.useState("");
+  const [showPayment, setShowPayment] = React.useState(false);
   const [showConfirmation, setShowConfirmation] = React.useState(false);
+  const [isProcessing, setIsProcessing] = React.useState(false);
 
   const handleLogout = async () => {
     try {
@@ -94,10 +186,55 @@ export default function ExploreScreen() {
   const handleCloseModal = () => {
     setSelectedMeal(null);
     setShowConfirmation(false);
+    setShowPayment(false);
   };
 
   const handleConfirmOrder = () => {
-    setShowConfirmation(true);
+    setShowPayment(true);
+  };
+
+  const handlePayment = async () => {
+    if (!currentMeal || !user) {
+      Alert.alert("Error", "Missing meal or user information");
+      return;
+    }
+
+    setIsProcessing(true);
+    try {
+      // Send order to backend with payment info
+      const API_BASE = Constants.expoConfig?.extra?.API_BASE || 'http://localhost:8080';
+      const response = await fetch(`${API_BASE}/api/orders/payment`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userId: user.id,
+          mealTitle: currentMeal.title,
+          mealPrice: currentMeal.price,
+          orderTime: orderTime || "ASAP",
+          specialNotes: specialNotes,
+          paymentToken: "test_token_" + Date.now(), // In production, use Stripe's createPaymentMethod
+        }),
+      });
+
+      const result = await response.json();
+      
+      if (result.success) {
+        setShowPayment(false);
+        setShowConfirmation(true);
+      } else {
+        Alert.alert("Error", result.error || "Payment failed");
+      }
+      setIsProcessing(false);
+    } catch (error) {
+      Alert.alert("Error", "Payment failed. Please try again.");
+      setIsProcessing(false);
+    }
+  };
+
+  const handleConfirmationDone = () => {
+    handleCloseModal();
   };
 
   const currentMeal = MENU_ITEMS.find((item) => item.id === selectedMeal);
@@ -221,7 +358,7 @@ export default function ExploreScreen() {
 
         {/* ORDER MODAL */}
         <Modal
-          visible={selectedMeal !== null && !showConfirmation}
+          visible={selectedMeal !== null && !showPayment && !showConfirmation}
           transparent
           animationType="fade"
           onRequestClose={handleCloseModal}
@@ -282,7 +419,7 @@ export default function ExploreScreen() {
                   onPress={handleConfirmOrder}
                 >
                   <Text style={[styles.modalButtonText, styles.modalButtonConfirmText]}>
-                    CONFIRM ORDER
+                    PROCEED TO PAYMENT
                   </Text>
                 </Pressable>
               </View>
@@ -292,14 +429,14 @@ export default function ExploreScreen() {
 
         {/* CONFIRMATION SCREEN MODAL */}
         <Modal
-          visible={showConfirmation}
+          visible={showConfirmation && !showPayment}
           transparent
           animationType="fade"
-          onRequestClose={handleCloseModal}
+          onRequestClose={handleConfirmationDone}
         >
           <View style={styles.modalOverlay}>
             <View style={styles.confirmationContent}>
-              <Text style={styles.confirmationTitle}>✓ Order Confirmed!</Text>
+              <Text style={styles.confirmationTitle}>✓ Payment Successful!</Text>
               
               <View style={styles.confirmationSection}>
                 <Text style={styles.confirmationLabel}>Meal</Text>
@@ -333,11 +470,49 @@ export default function ExploreScreen() {
               <View style={styles.confirmationButtons}>
                 <Pressable
                   style={[styles.confirmationButton, styles.confirmationButtonPrimary]}
-                  onPress={handleCloseModal}
+                  onPress={handleConfirmationDone}
                 >
                   <Text style={styles.confirmationButtonText}>DONE</Text>
                 </Pressable>
               </View>
+            </View>
+          </View>
+        </Modal>
+
+        {/* PAYMENT SCREEN MODAL */}
+        <Modal
+          visible={showPayment}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setShowPayment(false)}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.paymentContent}>
+              <Text style={styles.paymentTitle}>Complete Your Payment</Text>
+              <View style={styles.paymentSummary}>
+                <View style={styles.paymentSummaryRow}>
+                  <Text style={styles.paymentSummaryLabel}>Meal</Text>
+                  <Text style={styles.paymentSummaryValue}>{currentMeal?.title}</Text>
+                </View>
+                <View style={styles.paymentSummaryRow}>
+                  <Text style={styles.paymentSummaryLabel}>Amount</Text>
+                  <Text style={styles.paymentSummaryValue}>{currentMeal?.price}</Text>
+                </View>
+              </View>
+              <Elements stripe={stripePromise}>
+                <PaymentForm
+                  onPaymentSuccess={() => {
+                    setShowPayment(false);
+                    setShowConfirmation(true);
+                  }}
+                  isProcessing={isProcessing}
+                  setIsProcessing={setIsProcessing}
+                  currentMeal={currentMeal}
+                  user={user}
+                  orderTime={orderTime}
+                  specialNotes={specialNotes}
+                />
+              </Elements>
             </View>
           </View>
         </Modal>
@@ -608,8 +783,11 @@ const styles = StyleSheet.create({
   },
   confirmationButtons: {
     marginTop: 20,
+    flexDirection: "row",
+    gap: 12,
   },
   confirmationButton: {
+    flex: 1,
     paddingVertical: 12,
     borderRadius: 8,
     alignItems: "center",
@@ -617,9 +795,95 @@ const styles = StyleSheet.create({
   confirmationButtonPrimary: {
     backgroundColor: PEACH,
   },
+  confirmationButtonSecondary: {
+    backgroundColor: "rgba(255,255,255,0.08)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.12)",
+  },
   confirmationButtonText: {
     color: "#1b1b1b",
     fontWeight: "800",
     fontSize: 14,
   },
+
+  // PAYMENT
+  paymentContent: {
+    backgroundColor: PANEL,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.08)",
+    padding: 24,
+    maxWidth: 500,
+    width: "100%",
+  },
+  paymentTitle: {
+    color: TEXT,
+    fontSize: 22,
+    fontWeight: "800",
+    marginBottom: 20,
+  },
+  paymentSummary: {
+    backgroundColor: "rgba(255,255,255,0.04)",
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 20,
+  },
+  paymentSummaryRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 8,
+  },
+  paymentSummaryLabel: {
+    color: MUTED,
+    fontSize: 12,
+    fontWeight: "600",
+  },
+  paymentSummaryValue: {
+    color: TEXT,
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  paymentSection: {
+    marginBottom: 20,
+  },
+  paymentLabel: {
+    color: TEXT,
+    fontSize: 14,
+    fontWeight: "600",
+    marginBottom: 8,
+  },
+  paymentNote: {
+    color: MUTED,
+    fontSize: 12,
+    fontStyle: "italic",
+    marginBottom: 12,
+  },
+  paymentButtons: {
+    flexDirection: "row",
+    gap: 12,
+  },
+  paymentButton: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 8,
+    alignItems: "center",
+  },
+  paymentButtonPrimary: {
+    backgroundColor: PEACH,
+  },
+  paymentButtonSecondary: {
+    backgroundColor: "rgba(255,255,255,0.08)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.12)",
+  },
+  paymentButtonDisabled: {
+    opacity: 0.6,
+  },
+  paymentButtonText: {
+    color: "#1b1b1b",
+    fontWeight: "800",
+    fontSize: 14,
+  },
 });
+
