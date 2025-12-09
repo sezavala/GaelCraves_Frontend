@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+<<<<<<< HEAD
 import {
   StyleSheet,
   View,
@@ -8,6 +9,9 @@ import {
   Text,
   ActivityIndicator,
 } from "react-native";
+=======
+import { StyleSheet, View, Pressable, ScrollView, Platform, SafeAreaView, Text } from "react-native";
+>>>>>>> aba2a40f939d9e6eab6c7f9d66bfc500b5763c62
 import { useRouter } from "expo-router";
 import { useAdminContext } from "@/auth/AdminContext";
 import { IconSymbol } from "@/components/ui/icon-symbol";
@@ -34,8 +38,11 @@ export default function AdminScreen() {
     totalUsers: 0,
     menuItems: 0,
   });
+<<<<<<< HEAD
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
+=======
+>>>>>>> aba2a40f939d9e6eab6c7f9d66bfc500b5763c62
 
   useEffect(() => {
     if (!isAdmin) {
@@ -95,11 +102,27 @@ export default function AdminScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
+<<<<<<< HEAD
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.headerLeft}>
           <View style={styles.logoFlame} />
           <Text style={styles.brand}>ADMIN PANEL</Text>
+=======
+      {/* Mobile Hamburger Menu for Android */}
+      {Platform.OS === 'android' && (
+        <View style={styles.mobileHeader}>
+          <Pressable 
+            onPress={() => setMenuOpen(!menuOpen)}
+            style={styles.hamburger}
+          >
+            <IconSymbol name="line.3.horizontal" size={24} color={TEXT} />
+          </Pressable>
+          <View style={styles.logoRow}>
+            <View style={styles.logoFlame} />
+            <Text style={styles.mobileTitle}>ADMIN PANEL</Text>
+          </View>
+>>>>>>> aba2a40f939d9e6eab6c7f9d66bfc500b5763c62
         </View>
         <Pressable
           onPress={() => setMenuOpen(!menuOpen)}
@@ -124,6 +147,7 @@ export default function AdminScreen() {
                 <IconSymbol name="house.fill" size={20} color={PEACH} />
                 <Text style={styles.menuItemText}>Home</Text>
               </Pressable>
+<<<<<<< HEAD
 
               <Pressable
                 style={styles.menuItem}
@@ -153,17 +177,102 @@ export default function AdminScreen() {
                 <Text style={styles.menuItemText}>
                   Contact
                 </Text>
+=======
+              
+              <Pressable 
+                style={styles.menuItem} 
+                onPress={() => {
+                  setMenuOpen(false);
+                  router.push("/admin_new");
+                }}
+              >
+                <IconSymbol name="bag.fill" size={20} color={PEACH} />
+                <Text style={styles.menuItemText}>Orders ({stats.pendingOrders})</Text>
+              </Pressable>
+              
+              <Pressable 
+                style={styles.menuItem} 
+                onPress={() => {
+                  setMenuOpen(false);
+                  router.push("/admin_menu");
+                }}
+              >
+                <IconSymbol name="book.fill" size={20} color={PEACH} />
+                <Text style={styles.menuItemText}>Menu ({stats.menuItems})</Text>
+              </Pressable>
+              
+              <Pressable 
+                style={styles.menuItem} 
+                onPress={() => {
+                  setMenuOpen(false);
+                  router.push("/admin_users");
+                }}
+              >
+                <IconSymbol name="person.2.fill" size={20} color={PEACH} />
+                <Text style={styles.menuItemText}>Users ({stats.totalUsers})</Text>
+              </Pressable>
+              
+              <Pressable 
+                style={styles.menuItem} 
+                onPress={() => {
+                  setMenuOpen(false);
+                  router.push("/admin_analytics");
+                }}
+              >
+                <IconSymbol name="chart.bar.fill" size={20} color={PEACH} />
+                <Text style={styles.menuItemText}>Analytics</Text>
+              </Pressable>
+              
+              <Pressable 
+                style={styles.menuItem} 
+                onPress={() => {
+                  setMenuOpen(false);
+                  router.push("/admin_settings");
+                }}
+              >
+                <IconSymbol name="gearshape.fill" size={20} color={PEACH} />
+                <Text style={styles.menuItemText}>Settings</Text>
+>>>>>>> aba2a40f939d9e6eab6c7f9d66bfc500b5763c62
               </Pressable>
             </View>
           </View>
         </Pressable>
       )}
 
+<<<<<<< HEAD
       <ScrollView contentContainerStyle={styles.scrollContent}>
         {/* Stats Grid */}
         <View style={styles.statsGrid}>
           <View style={[styles.statCard, { backgroundColor: "#1a2f2f" }]}>
             <IconSymbol name="bag.fill" size={24} color={PEACH} />
+=======
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Header */}
+        <View style={styles.header}>
+          <View style={styles.headerTop}>
+            <View>
+              <Text style={styles.greeting}>Welcome back, Owner! 👋</Text>
+              <Text style={styles.subtitle}>
+                Here's what's happening today
+              </Text>
+            </View>
+            <View style={styles.badge}>
+              <IconSymbol name="shield.fill" size={16} color={PEACH} />
+              <Text style={styles.badgeText}>Admin</Text>
+            </View>
+          </View>
+        </View>
+
+        {/* Quick Stats */}
+        <View style={styles.statsContainer}>
+          <View style={styles.statCard}>
+            <View style={[styles.statIconContainer, { backgroundColor: PEACH }]}>
+              <IconSymbol name="clock.fill" size={20} color={BG} />
+            </View>
+>>>>>>> aba2a40f939d9e6eab6c7f9d66bfc500b5763c62
             <Text style={styles.statValue}>{stats.pendingOrders}</Text>
             <Text style={styles.statLabel}>Pending Orders</Text>
           </View>
@@ -193,11 +302,57 @@ export default function AdminScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Quick Actions</Text>
 
+<<<<<<< HEAD
+=======
+        <View style={styles.cardsContainer}>
+          {/* Orders Management - Primary Focus */}
+          <Pressable
+            style={({ pressed }) => [
+              styles.primaryCard,
+              pressed && styles.cardPressed,
+            ]}
+            onPress={() => {
+              router.push("/admin_new");
+            }}
+          >
+            <View style={styles.primaryCardHeader}>
+              <View style={[styles.cardIconLarge, { backgroundColor: PEACH }]}>
+                <IconSymbol name="bag.fill" size={28} color={BG} />
+              </View>
+              <View style={styles.cardBadge}>
+                <Text style={styles.cardBadgeText}>{stats.pendingOrders} New</Text>
+              </View>
+            </View>
+            <View style={styles.primaryCardContent}>
+              <Text style={styles.primaryCardTitle}>Order Management</Text>
+              <Text style={styles.primaryCardDescription}>
+                View, process, and track all customer orders in real-time
+              </Text>
+              <View style={styles.cardFeatures}>
+                <View style={styles.featureItem}>
+                  <IconSymbol name="checkmark.circle.fill" size={16} color={PEACH} />
+                  <Text style={styles.featureText}>Real-time tracking</Text>
+                </View>
+                <View style={styles.featureItem}>
+                  <IconSymbol name="checkmark.circle.fill" size={16} color={PEACH} />
+                  <Text style={styles.featureText}>Order history</Text>
+                </View>
+              </View>
+            </View>
+            <View style={styles.cardFooter}>
+              <Text style={styles.cardAction}>Manage Orders</Text>
+              <IconSymbol name="arrow.right" size={18} color={PEACH} />
+            </View>
+          </Pressable>
+
+          {/* Menu Management */}
+>>>>>>> aba2a40f939d9e6eab6c7f9d66bfc500b5763c62
           <Pressable
             style={({ pressed }) => [
               styles.card,
               pressed && styles.cardPressed,
             ]}
+<<<<<<< HEAD
             onPress={() => handleNavigate("/order")}
           >
             <View style={styles.cardRow}>
@@ -220,6 +375,11 @@ export default function AdminScreen() {
               pressed && styles.cardPressed,
             ]}
             onPress={() => handleNavigate("/(tabs)/explore")}
+=======
+            onPress={() => {
+              router.push("/admin_menu");
+            }}
+>>>>>>> aba2a40f939d9e6eab6c7f9d66bfc500b5763c62
           >
             <View style={styles.cardRow}>
               <View style={[styles.cardIcon, { backgroundColor: PEACH }]}>
@@ -240,7 +400,13 @@ export default function AdminScreen() {
               styles.card,
               pressed && styles.cardPressed,
             ]}
+<<<<<<< HEAD
             onPress={() => handleNavigate("/(tabs)/about")}
+=======
+            onPress={() => {
+              router.push("/admin_users");
+            }}
+>>>>>>> aba2a40f939d9e6eab6c7f9d66bfc500b5763c62
           >
             <View style={styles.cardRow}>
               <View style={[styles.cardIcon, { backgroundColor: PEACH }]}>
@@ -249,7 +415,59 @@ export default function AdminScreen() {
               <View style={styles.cardContent}>
                 <Text style={styles.cardTitle}>About & Info</Text>
                 <Text style={styles.cardDescription}>
+<<<<<<< HEAD
                   View restaurant information and details
+=======
+                  {stats.totalUsers} users • Manage accounts and permissions
+                </Text>
+              </View>
+              <IconSymbol name="chevron.right" size={20} color={MUTED} />
+            </View>
+          </Pressable>
+
+          {/* Analytics */}
+          <Pressable
+            style={({ pressed }) => [
+              styles.card,
+              pressed && styles.cardPressed,
+            ]}
+            onPress={() => {
+              router.push("/admin_analytics");
+            }}
+          >
+            <View style={styles.cardRow}>
+              <View style={[styles.cardIcon, { backgroundColor: PEACH }]}>
+                <IconSymbol name="chart.bar.fill" size={24} color={BG} />
+              </View>
+              <View style={styles.cardContent}>
+                <Text style={styles.cardTitle}>Analytics & Reports</Text>
+                <Text style={styles.cardDescription}>
+                  View sales trends and performance metrics
+                </Text>
+              </View>
+              <IconSymbol name="chevron.right" size={20} color={MUTED} />
+            </View>
+          </Pressable>
+
+          {/* Settings */}
+          <Pressable
+            style={({ pressed }) => [
+              styles.card,
+              pressed && styles.cardPressed,
+            ]}
+            onPress={() => {
+              router.push("/admin_settings");
+            }}
+          >
+            <View style={styles.cardRow}>
+              <View style={[styles.cardIcon, { backgroundColor: PEACH }]}>
+                <IconSymbol name="gearshape.fill" size={24} color={BG} />
+              </View>
+              <View style={styles.cardContent}>
+                <Text style={styles.cardTitle}>Settings</Text>
+                <Text style={styles.cardDescription}>
+                  Configure app settings and preferences
+>>>>>>> aba2a40f939d9e6eab6c7f9d66bfc500b5763c62
                 </Text>
               </View>
               <IconSymbol name="chevron.right" size={20} color={MUTED} />
@@ -483,6 +701,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: MUTED,
   },
+<<<<<<< HEAD
   orderCard: {
     backgroundColor: PANEL,
     borderRadius: 12,
@@ -535,6 +754,10 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontWeight: "600",
   },
+=======
+  
+  // Back Button
+>>>>>>> aba2a40f939d9e6eab6c7f9d66bfc500b5763c62
   backButton: {
     flexDirection: "row",
     alignItems: "center",
