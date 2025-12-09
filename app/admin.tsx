@@ -219,7 +219,7 @@ export default function AdminScreen() {
               styles.card,
               pressed && styles.cardPressed,
             ]}
-            onPress={() => handleNavigate("/(tabs)/explore")}
+            onPress={() => handleNavigate("/admin_menu")}
           >
             <View style={styles.cardRow}>
               <View style={[styles.cardIcon, { backgroundColor: PEACH }]}>
@@ -228,7 +228,7 @@ export default function AdminScreen() {
               <View style={styles.cardContent}>
                 <Text style={styles.cardTitle}>Menu Management</Text>
                 <Text style={styles.cardDescription}>
-                  Browse and manage menu items
+                  Add, edit, and manage menu items with CRUD operations
                 </Text>
               </View>
               <IconSymbol name="chevron.right" size={20} color={MUTED} />
@@ -240,16 +240,16 @@ export default function AdminScreen() {
               styles.card,
               pressed && styles.cardPressed,
             ]}
-            onPress={() => handleNavigate("/(tabs)/about")}
+            onPress={() => handleNavigate("/admin_users")}
           >
             <View style={styles.cardRow}>
               <View style={[styles.cardIcon, { backgroundColor: PEACH }]}>
                 <IconSymbol name="person.2.fill" size={24} color={BG} />
               </View>
               <View style={styles.cardContent}>
-                <Text style={styles.cardTitle}>About & Info</Text>
+                <Text style={styles.cardTitle}>User Management</Text>
                 <Text style={styles.cardDescription}>
-                  View restaurant information and details
+                  View and manage all registered users and their roles
                 </Text>
               </View>
               <IconSymbol name="chevron.right" size={20} color={MUTED} />
