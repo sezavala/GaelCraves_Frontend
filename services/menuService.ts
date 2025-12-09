@@ -4,6 +4,7 @@
  */
 
 import { API_BASE_URL } from "@/config/environment";
+import { getAuthToken } from "./authToken";
 
 export interface FoodItem {
   foodItemId: number;
@@ -27,10 +28,12 @@ export interface Menu {
  */
 export async function getMenus(): Promise<Menu[]> {
   try {
+    const token = await getAuthToken();
     const response = await fetch(`${API_BASE_URL}/menus`, {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
       },
     });
 
@@ -50,21 +53,27 @@ export async function getMenus(): Promise<Menu[]> {
  */
 export async function getFoodItems(): Promise<FoodItem[]> {
   try {
+    const token = await getAuthToken();
     const response = await fetch(`${API_BASE_URL}/food-items`, {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
       },
     });
 
     if (!response.ok) {
-      throw new Error(`Failed to fetch food items: ${response.statusText}`);
+      const text = await response.text();
+      console.error("❌ Failed to fetch food items:", response.status, text);
+      // Degrade gracefully: return empty list so UI can show an error without crashing
+      return [];
     }
 
     return await response.json();
   } catch (error) {
     console.error("Error fetching food items:", error);
-    throw error;
+    // Also degrade gracefully here
+    return [];
   }
 }
 
