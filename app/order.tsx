@@ -7,8 +7,11 @@ import {
   Pressable,
   StyleSheet,
   useWindowDimensions,
+  Platform,
+  Alert,
 } from "react-native";
-import { Link } from "expo-router";
+import { Link, useRouter } from "expo-router";
+import { useAuth } from "@/auth/AuthContext";
 
 const BG = "#0B1313";
 const PANEL = "#0E1717";
@@ -49,6 +52,18 @@ export default function ExploreScreen() {
   const isWide = width >= 1100; // 3 columns
   const isTablet = width >= 700 && width < 1100; // 2 columns
   const isMobile = width < 600;
+  const { user, logout, isHydrated } = useAuth();
+  const router = useRouter();
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+      Alert.alert("Success", "You have been logged out");
+      router.replace("/(tabs)");
+    } catch (error) {
+      console.error("Logout error:", error);
+    }
+  };
 
   const tileBasis = isWide ? "48%" : isTablet ? "47%" : "100%";
 
@@ -100,13 +115,22 @@ export default function ExploreScreen() {
               </Pressable>
             </Link>
 
-            <Link href="/login" asChild>
+            {user ? (
               <Pressable
                 style={isMobile ? styles.loginBtnMobile : styles.loginBtn}
+                onPress={handleLogout}
               >
-                <Text style={styles.loginText}>LOGIN</Text>
+                <Text style={styles.loginText}>LOGOUT</Text>
               </Pressable>
-            </Link>
+            ) : (
+              <Link href="/login" asChild>
+                <Pressable
+                  style={isMobile ? styles.loginBtnMobile : styles.loginBtn}
+                >
+                  <Text style={styles.loginText}>LOGIN</Text>
+                </Pressable>
+              </Link>
+            )}
           </View>
         </View>
 

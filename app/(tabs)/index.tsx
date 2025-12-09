@@ -115,9 +115,11 @@ export default function HomeScreen() {
               you.
             </Text>
             <View style={styles.ctaRow}>
-              <Pressable style={styles.primaryOutline}>
-                <Text style={styles.primaryOutlineText}>PLACE YOUR ORDER</Text>
-              </Pressable>
+              <Link href="/order" asChild>
+                <Pressable style={styles.primaryOutline}>
+                  <Text style={styles.primaryOutlineText}>PLACE YOUR ORDER</Text>
+                </Pressable>
+              </Link>
             </View>
           </View>
 
