@@ -12,8 +12,7 @@ import {
 import { useRouter } from "expo-router";
 import { useAdminContext } from "@/auth/AdminContext";
 import { IconSymbol } from "@/components/ui/icon-symbol";
-import { API_BASE_URL } from "@/config/environment";
-import * as SecureStore from "expo-secure-store";
+import { getAllUsers, User } from "@/services/userService";
 
 const BG = "#0B1313";
 const PANEL = "#0E1717";
@@ -21,14 +20,6 @@ const PEACH = "#E7C4A3";
 const TEXT = "rgba(255,255,255,0.92)";
 const MUTED = "rgba(255,255,255,0.72)";
 const BORDER = "rgba(255,255,255,0.08)";
-
-interface User {
-  userId: number;
-  email: string;
-  firstName?: string;
-  lastName?: string;
-  roles?: string[];
-}
 
 export default function AdminUsersScreen() {
   const { isAdmin } = useAdminContext();
@@ -49,21 +40,8 @@ export default function AdminUsersScreen() {
     try {
       setLoading(true);
       setError(null);
-      
-      const token = await SecureStore.getItemAsync("userToken");
-      const response = await fetch(`${API_BASE_URL}/users`, {
-        headers: {
-          "Content-Type": "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error(`Failed to fetch users: ${response.statusText}`);
-      }
-
-      const data = await response.json();
-      setUsers(Array.isArray(data) ? data : []);
+  const data = await getAllUsers();
+  setUsers(data);
     } catch (err) {
       console.error("Error fetching users:", err);
       setError(err instanceof Error ? err.message : "Failed to load users");

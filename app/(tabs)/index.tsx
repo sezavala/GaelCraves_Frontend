@@ -11,15 +11,19 @@ import {
   StyleSheet,
   useWindowDimensions,
   Platform,
+  Modal,
+  TouchableOpacity,
 } from "react-native";
 import { useAuth } from "@/auth/AuthContext";
-import { useAdminContext } from "@/auth/AdminContext";
+import { IconSymbol } from "@/components/ui/icon-symbol";
 
 export default function HomeScreen() {
   const { width } = useWindowDimensions();
   const isWide = width >= 900; // simple responsive tweak for web
+  const isMobile = width < 600;
   const router = useRouter();
   const { user, logout } = useAuth();
+  const [menuOpen, setMenuOpen] = React.useState(false);
 
   const handleNavLogin = (which = "primary") => {
     console.log("[nav] handleNavLogin called from", which);
@@ -47,6 +51,11 @@ export default function HomeScreen() {
     }
   };
 
+  const handleNavigate = (path: any) => {
+    setMenuOpen(false);
+    router.push(path);
+  };
+
   return (
     <SafeAreaView style={styles.safe}>
       <ScrollView
@@ -59,41 +68,153 @@ export default function HomeScreen() {
             <View style={styles.logoFlame} />
             <Text style={styles.brand}>GAEL'S CRAVES</Text>
           </View>
-          <View style={styles.navRight}>
-            <Text style={styles.navLink}>Home</Text>
-            <Text style={styles.navLink}>About</Text>
-            <Text style={styles.navLink}>Menu</Text>
-            <Text style={styles.navLink}>Contact us</Text>
-            
-            {user ? (
-              <Pressable
-                style={styles.logoutBtn}
-                onPress={handleLogout}
-              >
-                <Text style={styles.logoutText}>LOGOUT</Text>
-              </Pressable>
-            ) : (
-              <>
-                {Platform.OS === "web" ? (
-                  <Link href="/login" asChild>
-                    <Pressable style={styles.viewMenuBtn}>
-                      <Text style={styles.viewMenuText}>LOGIN</Text>
-                    </Pressable>
-                  </Link>
-                ) : (
-                  <Pressable
-                    style={styles.viewMenuBtn}
-                    android_ripple={{ color: "rgba(0,0,0,0.1)" }}
-                    onPress={() => handleNavLogin("nav-right")}
-                    testID="nav-login-right"
-                  >
+
+          {isMobile ? (
+            <TouchableOpacity
+              activeOpacity={0.7}
+              onPress={() => {
+                console.log("🍔 Home Hamburger clicked!");
+                setMenuOpen(true);
+              }}
+              style={styles.menuButton}
+            >
+              <IconSymbol name="line.3.horizontal" size={32} color={TEXT} />
+            </TouchableOpacity>
+          ) : (
+            <View style={styles.navRight}>
+              <Text style={styles.navLink}>Home</Text>
+              <Link href="/about" asChild>
+                <Pressable>
+                  <Text style={styles.navLink}>About</Text>
+                </Pressable>
+              </Link>
+              <Link href="/order" asChild>
+                <Pressable>
+                  <Text style={styles.navLink}>Menu</Text>
+                </Pressable>
+              </Link>
+              <Link href="/contact" asChild>
+                <Pressable>
+                  <Text style={styles.navLink}>Contact us</Text>
+                </Pressable>
+              </Link>
+
+              {user ? (
+                <Pressable style={styles.logoutBtn} onPress={handleLogout}>
+                  <Text style={styles.logoutText}>LOGOUT</Text>
+                </Pressable>
+              ) : (
+                <Link href="/login" asChild>
+                  <Pressable style={styles.viewMenuBtn}>
                     <Text style={styles.viewMenuText}>LOGIN</Text>
                   </Pressable>
-                )}
-              </>
-            )}
-          </View>
+                </Link>
+              )}
+            </View>
+          )}
         </View>
+
+        {/* Mobile Menu Modal */}
+        <Modal
+          visible={menuOpen}
+          transparent
+          animationType="slide"
+          onRequestClose={() => setMenuOpen(false)}
+          statusBarTranslucent
+        >
+          <TouchableOpacity
+            style={styles.modalOverlay}
+            activeOpacity={1}
+            onPress={() => {
+              console.log("🚪 Home backdrop pressed");
+              setMenuOpen(false);
+            }}
+          >
+            <TouchableOpacity
+              activeOpacity={1}
+              onPress={(e) => e.stopPropagation()}
+              style={styles.menuDrawer}
+            >
+              <View style={styles.menuHeader}>
+                <Text style={styles.menuTitle}>Menu</Text>
+                <TouchableOpacity onPress={() => setMenuOpen(false)}>
+                  <IconSymbol name="xmark" size={24} color={TEXT} />
+                </TouchableOpacity>
+              </View>
+
+              <View style={styles.menuItems}>
+                <TouchableOpacity
+                  style={styles.menuItem}
+                  onPress={() => handleNavigate("/(tabs)")}
+                >
+                  <IconSymbol name="house.fill" size={20} color={PEACH} />
+                  <Text style={styles.menuItemText}>Home</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={styles.menuItem}
+                  onPress={() => handleNavigate("/about")}
+                >
+                  <IconSymbol name="info.circle.fill" size={20} color={PEACH} />
+                  <Text style={styles.menuItemText}>About</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={styles.menuItem}
+                  onPress={() => handleNavigate("/order")}
+                >
+                  <IconSymbol name="book.fill" size={20} color={PEACH} />
+                  <Text style={styles.menuItemText}>Menu</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={styles.menuItem}
+                  onPress={() => handleNavigate("/contact")}
+                >
+                  <IconSymbol name="envelope.fill" size={20} color={PEACH} />
+                  <Text style={styles.menuItemText}>Contact</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={styles.menuItem}
+                  onPress={() => handleNavigate("/(tabs)/faq")}
+                >
+                  <IconSymbol
+                    name="questionmark.circle.fill"
+                    size={20}
+                    color={PEACH}
+                  />
+                  <Text style={styles.menuItemText}>FAQ</Text>
+                </TouchableOpacity>
+
+                {user ? (
+                  <TouchableOpacity
+                    style={[styles.menuItem, styles.logoutMenuItem]}
+                    onPress={() => {
+                      setMenuOpen(false);
+                      handleLogout();
+                    }}
+                  >
+                    <IconSymbol
+                      name="arrow.right.square.fill"
+                      size={20}
+                      color={PEACH}
+                    />
+                    <Text style={styles.menuItemText}>Logout</Text>
+                  </TouchableOpacity>
+                ) : (
+                  <TouchableOpacity
+                    style={[styles.menuItem, styles.loginMenuItem]}
+                    onPress={() => handleNavigate("/login")}
+                  >
+                    <IconSymbol name="person.fill" size={20} color={PEACH} />
+                    <Text style={styles.menuItemText}>Login</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+            </TouchableOpacity>
+          </TouchableOpacity>
+        </Modal>
 
         {/* HERO */}
         <View
@@ -105,11 +226,11 @@ export default function HomeScreen() {
           {/* Left copy */}
           <View style={[styles.heroLeft, { flex: isWide ? 1 : undefined }]}>
             <Text style={styles.eyebrow}>Crafted with passion</Text>
-            <Text style={styles.h1}>
+            <Text style={[styles.h1, isMobile && styles.h1Mobile]}>
               Where <Text style={styles.accent}>Cravings</Text> Meet Their
               Perfect Match
             </Text>
-            <Text style={styles.sub}>
+            <Text style={[styles.sub, isMobile && styles.subMobile]}>
               Discover bold flavors and unforgettable dishes in a place where
               every craving is satisfied with the perfect bite, crafted just for
               you.
@@ -117,7 +238,9 @@ export default function HomeScreen() {
             <View style={styles.ctaRow}>
               <Link href="/order" asChild>
                 <Pressable style={styles.primaryOutline}>
-                  <Text style={styles.primaryOutlineText}>PLACE YOUR ORDER</Text>
+                  <Text style={styles.primaryOutlineText}>
+                    PLACE YOUR ORDER
+                  </Text>
                 </Pressable>
               </Link>
             </View>
@@ -211,6 +334,70 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: "800",
   },
+  menuButton: {
+    padding: 16,
+    marginRight: -12,
+    zIndex: 1000,
+    elevation: 1000,
+  },
+
+  // Mobile Menu
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.6)",
+    justifyContent: "flex-end",
+  },
+  menuDrawer: {
+    backgroundColor: PANEL,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    paddingBottom: Platform.OS === "android" ? 60 : 40,
+    maxHeight: "85%",
+    elevation: 20,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+  },
+  menuHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: "rgba(255,255,255,0.08)",
+  },
+  menuTitle: {
+    color: TEXT,
+    fontSize: 20,
+    fontWeight: "800",
+  },
+  menuItems: {
+    padding: 16,
+  },
+  menuItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 16,
+    gap: 12,
+    borderRadius: 12,
+    marginBottom: 8,
+  },
+  menuItemText: {
+    color: TEXT,
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  logoutMenuItem: {
+    marginTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: "rgba(255,255,255,0.08)",
+    paddingTop: 24,
+  },
+  loginMenuItem: {
+    marginTop: 16,
+    backgroundColor: PEACH + "20",
+  },
 
   // HERO
   heroCard: {
@@ -234,7 +421,15 @@ const styles = StyleSheet.create({
     lineHeight: 62,
     fontWeight: "800",
     marginBottom: 14,
-    fontFamily: "Georgia, Times New Roman, serif",
+    fontFamily: Platform.select({
+      ios: "Georgia",
+      android: "serif",
+      default: "Georgia, Times New Roman, serif",
+    }),
+  },
+  h1Mobile: {
+    fontSize: 32,
+    lineHeight: 38,
   },
   accent: { color: PEACH },
   sub: {
@@ -243,6 +438,10 @@ const styles = StyleSheet.create({
     lineHeight: 22,
     marginTop: 6,
     maxWidth: 680,
+  },
+  subMobile: {
+    fontSize: 14,
+    lineHeight: 20,
   },
   ctaRow: { flexDirection: "row", gap: 12, marginTop: 18 },
   primaryOutline: {

@@ -51,6 +51,12 @@ export default function AdminMenuScreen() {
       
       setMenus(menusData);
       setFoodItems(itemsData);
+
+      if (menusData.length === 0 && itemsData.length === 0) {
+        setError(
+          "Backend returned no menu data (or an error). Please try again later or contact support."
+        );
+      }
     } catch (err) {
       console.error("Error fetching menu data:", err);
       setError(err instanceof Error ? err.message : "Failed to load menu data");

@@ -10,7 +10,9 @@ import {
   Image,
   StyleSheet,
   useWindowDimensions,
+  Modal,
 } from "react-native";
+import { IconSymbol } from "@/components/ui/icon-symbol";
 
 const BG = "#0B1313";
 const PANEL = "#0E1717";
@@ -20,16 +22,24 @@ const MUTED = "rgba(255,255,255,0.72)";
 
 export default function AboutScreen() {
   const { width } = useWindowDimensions();
-  const isWide = width >= 1000;   // layout row vs column
-  const isMobile = width < 600;   // phone-ish
+  const isWide = width >= 1000; // layout row vs column
+  const isMobile = width < 600; // phone-ish
   const { user, logout } = useAuth();
   const router = useRouter();
+  const [menuOpen, setMenuOpen] = React.useState(false);
 
   const handleLogout = async () => {
     try {
       await logout();
     } catch {}
-    try { router.replace("/(tabs)"); } catch {}
+    try {
+      router.replace("/(tabs)");
+    } catch {}
+  };
+
+  const handleNavigate = (path: any) => {
+    setMenuOpen(false);
+    router.push(path);
   };
 
   return (
@@ -42,64 +52,171 @@ export default function AboutScreen() {
       >
         {/* NAVBAR */}
         <View style={styles.nav}>
-            <View style={styles.brandRow}>
-                <View style={styles.logoFlame} />
-                <Text style={styles.brand}>GAEL&apos;S CRAVES</Text>
-            </View>
+          <View style={styles.brandRow}>
+            <View style={styles.logoFlame} />
+            <Text style={styles.brand}>GAEL&apos;S CRAVES</Text>
+          </View>
+
+          {isMobile ? (
+            <Pressable
+              onPress={() => {
+                console.log("About hamburger clicked!");
+                setMenuOpen(true);
+              }}
+              style={styles.menuButton}
+              hitSlop={{ top: 20, bottom: 20, left: 20, right: 20 }}
+            >
+              <IconSymbol name="line.3.horizontal" size={28} color={TEXT} />
+            </Pressable>
+          ) : (
             <View style={[styles.navRight, isMobile && styles.navRightMobile]}>
-                <Link href="/" asChild>
+              <Link href="/" asChild>
                 <Pressable>
-                    <Text style={[styles.navLink, isMobile && styles.navLinkMobile]}>
+                  <Text
+                    style={[styles.navLink, isMobile && styles.navLinkMobile]}
+                  >
                     Home
-                    </Text>
-                </Pressable>
-                </Link>
-
-                <Link href="/about" asChild>
-                <Pressable>
-                    <Text
-                    style={[
-                        styles.navLink,
-                        styles.navLinkActive,
-                        isMobile && styles.navLinkMobile,
-                    ]}
-                    >
-                    About
-                    </Text>
-                </Pressable>
-                </Link>
-
-                {/* <Link href="/basket" asChild>
-                <Pressable>
-                    <Text style={[styles.navLink, isMobile && styles.navLinkMobile]}>
-                    Basket
-                    </Text>
-                </Pressable>
-                </Link> */}
-
-                <Link href="/contact" asChild>
-                <Pressable>
-                    <Text style={[styles.navLink, isMobile && styles.navLinkMobile]}>
-                    Contact us
-                    </Text>
-                </Pressable>
-                </Link>
-            {user ? (
-              <Pressable
-                style={isMobile ? styles.loginBtnMobile : styles.loginBtn}
-                onPress={handleLogout}
-              >
-                <Text style={styles.loginText}>LOGOUT</Text>
-              </Pressable>
-            ) : (
-              <Link href="/login" asChild>
-                <Pressable style={isMobile ? styles.loginBtnMobile : styles.loginBtn}>
-                  <Text style={styles.loginText}>LOGIN</Text>
+                  </Text>
                 </Pressable>
               </Link>
-            )}
-          </View>
+
+              <Link href="/about" asChild>
+                <Pressable>
+                  <Text
+                    style={[
+                      styles.navLink,
+                      styles.navLinkActive,
+                      isMobile && styles.navLinkMobile,
+                    ]}
+                  >
+                    About
+                  </Text>
+                </Pressable>
+              </Link>
+
+              <Link href="/contact" asChild>
+                <Pressable>
+                  <Text
+                    style={[styles.navLink, isMobile && styles.navLinkMobile]}
+                  >
+                    Contact us
+                  </Text>
+                </Pressable>
+              </Link>
+
+              {user ? (
+                <Pressable
+                  style={isMobile ? styles.loginBtnMobile : styles.loginBtn}
+                  onPress={handleLogout}
+                >
+                  <Text style={styles.loginText}>LOGOUT</Text>
+                </Pressable>
+              ) : (
+                <Link href="/login" asChild>
+                  <Pressable
+                    style={isMobile ? styles.loginBtnMobile : styles.loginBtn}
+                  >
+                    <Text style={styles.loginText}>LOGIN</Text>
+                  </Pressable>
+                </Link>
+              )}
+            </View>
+          )}
         </View>
+
+        {/* Mobile Menu Modal */}
+        <Modal
+          visible={menuOpen}
+          transparent
+          animationType="slide"
+          onRequestClose={() => setMenuOpen(false)}
+        >
+          <View style={styles.modalOverlay}>
+            <Pressable
+              style={styles.modalBackdrop}
+              onPress={() => setMenuOpen(false)}
+            />
+            <View style={styles.menuDrawer}>
+              <View style={styles.menuHeader}>
+                <Text style={styles.menuTitle}>Menu</Text>
+                <Pressable onPress={() => setMenuOpen(false)}>
+                  <IconSymbol name="xmark" size={24} color={TEXT} />
+                </Pressable>
+              </View>
+
+              <View style={styles.menuItems}>
+                <Pressable
+                  style={styles.menuItem}
+                  onPress={() => handleNavigate("/(tabs)")}
+                >
+                  <IconSymbol name="house.fill" size={20} color={PEACH} />
+                  <Text style={styles.menuItemText}>Home</Text>
+                </Pressable>
+
+                <Pressable
+                  style={[styles.menuItem, styles.activeMenuItem]}
+                  onPress={() => handleNavigate("/about")}
+                >
+                  <IconSymbol name="info.circle.fill" size={20} color={PEACH} />
+                  <Text style={styles.menuItemText}>About</Text>
+                </Pressable>
+
+                <Pressable
+                  style={styles.menuItem}
+                  onPress={() => handleNavigate("/order")}
+                >
+                  <IconSymbol name="book.fill" size={20} color={PEACH} />
+                  <Text style={styles.menuItemText}>Menu</Text>
+                </Pressable>
+
+                <Pressable
+                  style={styles.menuItem}
+                  onPress={() => handleNavigate("/contact")}
+                >
+                  <IconSymbol name="envelope.fill" size={20} color={PEACH} />
+                  <Text style={styles.menuItemText}>Contact</Text>
+                </Pressable>
+
+                <Pressable
+                  style={styles.menuItem}
+                  onPress={() => handleNavigate("/(tabs)/faq")}
+                >
+                  <IconSymbol
+                    name="questionmark.circle.fill"
+                    size={20}
+                    color={PEACH}
+                  />
+                  <Text style={styles.menuItemText}>FAQ</Text>
+                </Pressable>
+
+                {user ? (
+                  <Pressable
+                    style={[styles.menuItem, styles.logoutMenuItem]}
+                    onPress={() => {
+                      setMenuOpen(false);
+                      handleLogout();
+                    }}
+                  >
+                    <IconSymbol
+                      name="arrow.right.square.fill"
+                      size={20}
+                      color={PEACH}
+                    />
+                    <Text style={styles.menuItemText}>Logout</Text>
+                  </Pressable>
+                ) : (
+                  <Pressable
+                    style={[styles.menuItem, styles.loginMenuItem]}
+                    onPress={() => handleNavigate("/login")}
+                  >
+                    <IconSymbol name="person.fill" size={20} color={PEACH} />
+                    <Text style={styles.menuItemText}>Login</Text>
+                  </Pressable>
+                )}
+              </View>
+            </View>
+          </View>
+        </Modal>
 
         {/* HERO / INTRO */}
         <View
@@ -128,11 +245,13 @@ export default function AboutScreen() {
               detail for the perfect bite.
             </Text>
             <View style={styles.ctaRow}>
-            <Link href="/order" asChild>
+              <Link href="/order" asChild>
                 <Pressable style={styles.primaryOutline}>
-                <Text style={styles.primaryOutlineText}>PLACE YOUR ORDER</Text>
+                  <Text style={styles.primaryOutlineText}>
+                    PLACE YOUR ORDER
+                  </Text>
                 </Pressable>
-            </Link>
+              </Link>
             </View>
           </View>
 
@@ -169,14 +288,11 @@ export default function AboutScreen() {
         </View>
 
         {/* FEATURES ROW */}
-        <View
-          style={[
-            styles.panel,
-            isMobile && styles.panelMobile,
-          ]}
-        >
+        <View style={[styles.panel, isMobile && styles.panelMobile]}>
           <Text style={styles.centerEyebrow}>WHY CHOOSE US</Text>
-          <Text style={[styles.centerTitle, isMobile && styles.centerTitleMobile]}>
+          <Text
+            style={[styles.centerTitle, isMobile && styles.centerTitleMobile]}
+          >
             We Provide Elegant Service{"\n"}for People
           </Text>
 
@@ -198,7 +314,12 @@ export default function AboutScreen() {
               >
                 <View style={styles.iconCircle} />
                 <Text style={styles.featureTitle}>{f.title}</Text>
-                <Text style={[styles.featureBody, isMobile && styles.featureBodyMobile]}>
+                <Text
+                  style={[
+                    styles.featureBody,
+                    isMobile && styles.featureBodyMobile,
+                  ]}
+                >
                   {f.body}
                 </Text>
               </View>
@@ -215,10 +336,7 @@ export default function AboutScreen() {
           ]}
         >
           <View
-            style={[
-              styles.storyMediaCol,
-              { flex: isWide ? 1 : undefined },
-            ]}
+            style={[styles.storyMediaCol, { flex: isWide ? 1 : undefined }]}
           >
             <Image
               // source={{ uri: "link goes here" }}
@@ -226,16 +344,15 @@ export default function AboutScreen() {
               resizeMode="cover"
             />
           </View>
-          <View
-            style={[
-              styles.storyTextCol,
-              { flex: isWide ? 1 : undefined },
-            ]}
-          >
-            <Text style={[styles.storyTitle, isMobile && styles.storyTitleMobile]}>
+          <View style={[styles.storyTextCol, { flex: isWide ? 1 : undefined }]}>
+            <Text
+              style={[styles.storyTitle, isMobile && styles.storyTitleMobile]}
+            >
               The First Spark
             </Text>
-            <Text style={[styles.storyBody, isMobile && styles.storyBodyMobile]}>
+            <Text
+              style={[styles.storyBody, isMobile && styles.storyBodyMobile]}
+            >
               It all started during a gym session when we realized how much joy
               food brings to people. Surrounded by those who want to reach their
               protein goals, we saw the power of a delicious meal. That’s when
@@ -254,10 +371,7 @@ export default function AboutScreen() {
           ]}
         >
           <View
-            style={[
-              styles.storyMediaCol,
-              { flex: isWide ? 1 : undefined },
-            ]}
+            style={[styles.storyMediaCol, { flex: isWide ? 1 : undefined }]}
           >
             {/* Faux “arch” look */}
             <Image
@@ -266,16 +380,15 @@ export default function AboutScreen() {
               resizeMode="cover"
             />
           </View>
-          <View
-            style={[
-              styles.storyTextCol,
-              { flex: isWide ? 1 : undefined },
-            ]}
-          >
-            <Text style={[styles.storyTitle, isMobile && styles.storyTitleMobile]}>
+          <View style={[styles.storyTextCol, { flex: isWide ? 1 : undefined }]}>
+            <Text
+              style={[styles.storyTitle, isMobile && styles.storyTitleMobile]}
+            >
               The First Chef
             </Text>
-            <Text style={[styles.storyBody, isMobile && styles.storyBodyMobile]}>
+            <Text
+              style={[styles.storyBody, isMobile && styles.storyBodyMobile]}
+            >
               Our journey began with a simple yet bold idea, but it needed a
               culinary expert to bring it to life. Enter our chef, a passionate
               innovator who shares our vision of crafting dishes that tell a
@@ -356,6 +469,75 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   loginText: { color: "#1b1b1b", fontWeight: "800" },
+  menuButton: {
+    padding: 15,
+    marginLeft: 10,
+    zIndex: 9999,
+    elevation: 9999,
+  },
+
+  // Mobile Menu
+  modalOverlay: {
+    flex: 1,
+    justifyContent: "flex-end",
+  },
+  modalBackdrop: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: "rgba(0,0,0,0.5)",
+  },
+  menuDrawer: {
+    backgroundColor: PANEL,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    paddingBottom: 40,
+    maxHeight: "80%",
+  },
+  menuHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: "rgba(255,255,255,0.08)",
+  },
+  menuTitle: {
+    color: TEXT,
+    fontSize: 20,
+    fontWeight: "800",
+  },
+  menuItems: {
+    padding: 16,
+  },
+  menuItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 16,
+    gap: 12,
+    borderRadius: 12,
+    marginBottom: 8,
+  },
+  menuItemText: {
+    color: TEXT,
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  activeMenuItem: {
+    backgroundColor: PEACH + "20",
+  },
+  logoutMenuItem: {
+    marginTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: "rgba(255,255,255,0.08)",
+    paddingTop: 24,
+  },
+  loginMenuItem: {
+    marginTop: 16,
+    backgroundColor: PEACH + "20",
+  },
 
   // Panels
   panel: {

@@ -7,11 +7,13 @@ import {
   TextInput,
   StyleSheet,
   useWindowDimensions,
+  Modal,
+  Pressable,
 } from 'react-native';
 import { Collapsible } from '@/components/ui/collapsible';
 import { Link, useRouter } from 'expo-router';
-import { Pressable } from 'react-native';
 import { useAuth } from '@/auth/AuthContext';
+import { IconSymbol } from '@/components/ui/icon-symbol';
 
 // Theme constants (kept consistent with existing screens)
 const BG = '#0B1313';
@@ -82,12 +84,18 @@ export default function FaqScreen() {
   const [category, setCategory] = React.useState<string | null>(null);
   const { user, logout } = useAuth();
   const router = useRouter();
+  const [menuOpen, setMenuOpen] = React.useState(false);
 
   const handleLogout = async () => {
     try {
       await logout();
     } catch {}
     try { router.replace("/(tabs)"); } catch {}
+  };
+
+  const handleNavigate = (path: any) => {
+    setMenuOpen(false);
+    router.push(path);
   };
 
   const categories = React.useMemo(() => {
@@ -114,51 +122,130 @@ export default function FaqScreen() {
             <View style={styles.logoFlame} />
             <Text style={styles.brand}>GAEL'S CRAVES</Text>
           </View>
-          <View style={[styles.navRight, isMobile && styles.navRightMobile]}>
-            <Link href="/" asChild>
-              <Pressable>
-                <Text style={[styles.navLink, isMobile && styles.navLinkMobile]}>
-                  Home
-                </Text>
-              </Pressable>
-            </Link>
 
-            <Link href="/about" asChild>
-              <Pressable>
-                <Text style={[styles.navLink, isMobile && styles.navLinkMobile]}>
-                  About
-                </Text>
-              </Pressable>
-            </Link>
-
-            <Link href="/contact" asChild>
-              <Pressable>
-                <Text style={[styles.navLink, isMobile && styles.navLinkMobile]}>
-                  Contact us
-                </Text>
-              </Pressable>
-            </Link>
-
-            <Text style={[styles.navLink, styles.navLinkActive, isMobile && styles.navLinkMobile]}>
-              FAQ
-            </Text>
-
-            {user ? (
-              <Pressable
-                style={isMobile ? styles.loginBtnMobile : styles.loginBtn}
-                onPress={handleLogout}
-              >
-                <Text style={styles.loginText}>LOGOUT</Text>
-              </Pressable>
-            ) : (
-              <Link href="/login" asChild>
-                <Pressable style={isMobile ? styles.loginBtnMobile : styles.loginBtn}>
-                  <Text style={styles.loginText}>LOGIN</Text>
+          {isMobile ? (
+            <Pressable 
+              onPress={() => {
+                console.log('FAQ hamburger clicked!');
+                setMenuOpen(true);
+              }} 
+              style={styles.menuButton}
+              hitSlop={{ top: 20, bottom: 20, left: 20, right: 20 }}
+            >
+              <IconSymbol name="line.3.horizontal" size={28} color={TEXT} />
+            </Pressable>
+          ) : (
+            <View style={[styles.navRight, isMobile && styles.navRightMobile]}>
+              <Link href="/" asChild>
+                <Pressable>
+                  <Text style={[styles.navLink, isMobile && styles.navLinkMobile]}>
+                    Home
+                  </Text>
                 </Pressable>
               </Link>
-            )}
-          </View>
+
+              <Link href="/about" asChild>
+                <Pressable>
+                  <Text style={[styles.navLink, isMobile && styles.navLinkMobile]}>
+                    About
+                  </Text>
+                </Pressable>
+              </Link>
+
+              <Link href="/contact" asChild>
+                <Pressable>
+                  <Text style={[styles.navLink, isMobile && styles.navLinkMobile]}>
+                    Contact us
+                  </Text>
+                </Pressable>
+              </Link>
+
+              <Text style={[styles.navLink, styles.navLinkActive, isMobile && styles.navLinkMobile]}>
+                FAQ
+              </Text>
+
+              {user ? (
+                <Pressable
+                  style={isMobile ? styles.loginBtnMobile : styles.loginBtn}
+                  onPress={handleLogout}
+                >
+                  <Text style={styles.loginText}>LOGOUT</Text>
+                </Pressable>
+              ) : (
+                <Link href="/login" asChild>
+                  <Pressable style={isMobile ? styles.loginBtnMobile : styles.loginBtn}>
+                    <Text style={styles.loginText}>LOGIN</Text>
+                  </Pressable>
+                </Link>
+              )}
+            </View>
+          )}
         </View>
+
+        {/* Mobile Menu Modal */}
+        <Modal
+          visible={menuOpen}
+          transparent
+          animationType="slide"
+          onRequestClose={() => setMenuOpen(false)}
+        >
+          <View style={styles.modalOverlay}>
+            <Pressable 
+              style={styles.modalBackdrop} 
+              onPress={() => setMenuOpen(false)} 
+            />
+            <View style={styles.menuDrawer}>
+              <View style={styles.menuHeader}>
+                <Text style={styles.menuTitle}>Menu</Text>
+                <Pressable onPress={() => setMenuOpen(false)}>
+                  <IconSymbol name="xmark" size={24} color={TEXT} />
+                </Pressable>
+              </View>
+
+              <View style={styles.menuItems}>
+                <Pressable style={styles.menuItem} onPress={() => handleNavigate("/(tabs)")}>
+                  <IconSymbol name="house.fill" size={20} color={PEACH} />
+                  <Text style={styles.menuItemText}>Home</Text>
+                </Pressable>
+
+                <Pressable style={styles.menuItem} onPress={() => handleNavigate("/about")}>
+                  <IconSymbol name="info.circle.fill" size={20} color={PEACH} />
+                  <Text style={styles.menuItemText}>About</Text>
+                </Pressable>
+
+                <Pressable style={styles.menuItem} onPress={() => handleNavigate("/order")}>
+                  <IconSymbol name="book.fill" size={20} color={PEACH} />
+                  <Text style={styles.menuItemText}>Menu</Text>
+                </Pressable>
+
+                <Pressable style={styles.menuItem} onPress={() => handleNavigate("/contact")}>
+                  <IconSymbol name="envelope.fill" size={20} color={PEACH} />
+                  <Text style={styles.menuItemText}>Contact</Text>
+                </Pressable>
+
+                <Pressable style={[styles.menuItem, styles.activeMenuItem]} onPress={() => handleNavigate("/(tabs)/faq")}>
+                  <IconSymbol name="questionmark.circle.fill" size={20} color={PEACH} />
+                  <Text style={styles.menuItemText}>FAQ</Text>
+                </Pressable>
+
+                {user ? (
+                  <Pressable style={[styles.menuItem, styles.logoutMenuItem]} onPress={() => {
+                    setMenuOpen(false);
+                    handleLogout();
+                  }}>
+                    <IconSymbol name="arrow.right.square.fill" size={20} color={PEACH} />
+                    <Text style={styles.menuItemText}>Logout</Text>
+                  </Pressable>
+                ) : (
+                  <Pressable style={[styles.menuItem, styles.loginMenuItem]} onPress={() => handleNavigate("/login")}>
+                    <IconSymbol name="person.fill" size={20} color={PEACH} />
+                    <Text style={styles.menuItemText}>Login</Text>
+                  </Pressable>
+                )}
+              </View>
+            </View>
+          </View>
+        </Modal>
 
         {/* PANEL INTRO */}
         <View style={[styles.panel, { flexDirection: isWide ? 'row' : 'column' }]}>
@@ -315,6 +402,76 @@ const styles = StyleSheet.create({
     fontSize: 13,
     letterSpacing: 0.5,
   },
+  menuButton: {
+    padding: 15,
+    marginLeft: 10,
+    zIndex: 9999,
+    elevation: 9999,
+  },
+
+  // Mobile Menu
+  modalOverlay: {
+    flex: 1,
+    justifyContent: 'flex-end',
+  },
+  modalBackdrop: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+  },
+  menuDrawer: {
+    backgroundColor: PANEL,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    paddingBottom: 40,
+    maxHeight: '80%',
+  },
+  menuHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255,255,255,0.08)',
+  },
+  menuTitle: {
+    color: TEXT,
+    fontSize: 20,
+    fontWeight: "800",
+  },
+  menuItems: {
+    padding: 16,
+  },
+  menuItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    gap: 12,
+    borderRadius: 12,
+    marginBottom: 8,
+  },
+  menuItemText: {
+    color: TEXT,
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  activeMenuItem: {
+    backgroundColor: PEACH + '20',
+  },
+  logoutMenuItem: {
+    marginTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255,255,255,0.08)',
+    paddingTop: 24,
+  },
+  loginMenuItem: {
+    marginTop: 16,
+    backgroundColor: PEACH + '20',
+  },
+
   panel: {
     marginTop: 8,
     backgroundColor: PANEL,
