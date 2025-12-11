@@ -48,7 +48,8 @@ export function useGoogleLogin() {
   } else if (Platform.OS === "android") {
     // Android: Use Heroku redirect endpoint (publicly accessible HTTPS)
     // The Heroku endpoint will handle the OAuth callback and redirect to the app
-    redirectUri = "https://gaelcraves-frontend-7a6e5c03f69a.herokuapp.com/oauth/callback";
+    redirectUri =
+      "https://gaelcraves-frontend-7a6e5c03f69a.herokuapp.com/oauth/callback";
     useProxy = false;
     responseType = "code"; // Use code flow for Android
   } else {
@@ -77,15 +78,18 @@ export function useGoogleLogin() {
   console.log("📋 Response Type:", responseType);
   console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
 
+  // CRITICAL: For Android to work with custom redirect URIs:
+  // - We must provide androidClientId (library requires it)
+  // - We must add BOTH URIs to Google Console Web Client:
+  //   1. https://gaelcraves-frontend-7a6e5c03f69a.herokuapp.com/oauth/callback
+  //   2. com.googleusercontent.apps.624682753251-iohflfcepqloe7vk8c2c6g1s25hre0cg:/oauth2redirect
   const [request, response, promptAsync] = Google.useAuthRequest({
-    // IMPORTANT: For Android, we use WEB client ID because Android client doesn't support custom redirect URIs
-    // The androidClientId is only used for server-side verification
     webClientId: GOOGLE_WEB_CLIENT_ID,
     androidClientId: GOOGLE_ANDROID_CLIENT_ID,
     iosClientId: GOOGLE_IOS_CLIENT_ID,
     redirectUri,
     responseType: responseType as any,
-    usePKCE: Platform.OS !== "web", // Enable PKCE for native platforms
+    usePKCE: Platform.OS !== "web",
     scopes: ["openid", "profile", "email"],
     extraParams: {
       access_type: "offline",
