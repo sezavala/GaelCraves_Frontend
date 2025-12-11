@@ -210,6 +210,13 @@ export default function ExploreScreen() {
         },
         body: JSON.stringify({
           userId: user.id,
+          items: [
+            {
+              foodItemId: currentMeal.id,
+              quantity: 1,
+              specialInstructions: specialNotes || "",
+            }
+          ],
           mealTitle: currentMeal.title,
           mealPrice: currentMeal.price,
           orderTime: orderTime || "ASAP",
