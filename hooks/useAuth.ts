@@ -279,7 +279,15 @@ export function useAuth() {
     setIsLoading(true);
     try {
       const result = await loginWithGithub();
-      Alert.alert(result.success ? "Success" : "Info", result.message);
+      if (result.success && result.user) {
+        await setUser(result.user);
+        router.replace("/(tabs)");
+        setTimeout(() => {
+          Alert.alert("Success", result.message);
+        }, 100);
+      } else {
+        Alert.alert(result.success ? "Success" : "Info", result.message);
+      }
     } finally {
       setIsLoading(false);
     }
