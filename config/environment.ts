@@ -20,6 +20,9 @@ const extraApiBase = Constants.expoConfig?.extra?.API_BASE as
   | string
   | undefined;
 
+// Force production mode setting - set to true to always use Heroku backend
+const FORCE_PRODUCTION = true;
+
 const ENV = {
   development: {
     API_BASE_URL: getDevApiUrl(),
@@ -33,12 +36,13 @@ const ENV = {
         ? extraApiBase
         : `${extraApiBase}/api`
       : "https://gaelcraves-backend-256f85b120e2.herokuapp.com/api",
-    ENABLE_LOGGING: false,
+    ENABLE_LOGGING: true, // Keep logging enabled in production for debugging
   },
 } as const;
 
 // Determine current environment
-const isDevelopment = __DEV__;
+// Force production mode if FORCE_PRODUCTION is true, otherwise use __DEV__
+const isDevelopment = FORCE_PRODUCTION ? false : __DEV__;
 const currentEnv = isDevelopment ? "development" : "production";
 
 export const API_BASE_URL = ENV[currentEnv].API_BASE_URL;

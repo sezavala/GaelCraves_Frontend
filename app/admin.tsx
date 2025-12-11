@@ -150,16 +150,17 @@ export default function AdminScreen() {
                 onPress={() => handleNavigate("/(tabs)/contact")}
               >
                 <IconSymbol name="person.2.fill" size={20} color={PEACH} />
-                <Text style={styles.menuItemText}>
-                  Contact
-                </Text>
+                <Text style={styles.menuItemText}>Contact</Text>
               </Pressable>
             </View>
           </View>
         </Pressable>
       )}
 
-      <ScrollView contentContainerStyle={styles.scrollContent}>
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
         {/* Stats Grid */}
         <View style={styles.statsGrid}>
           <View style={[styles.statCard, { backgroundColor: "#1a2f2f" }]}>
@@ -198,7 +199,15 @@ export default function AdminScreen() {
               styles.card,
               pressed && styles.cardPressed,
             ]}
-            onPress={() => handleNavigate("/order")}
+            onPress={() => {
+              // Scroll to orders section or navigate to dedicated orders page
+              if (orders.length > 0) {
+                // Show alert to scroll down
+                alert("Recent orders are displayed below. Scroll down to view and manage them.");
+              } else {
+                alert("No orders yet. Orders will appear here when customers place them.");
+              }
+            }}
           >
             <View style={styles.cardRow}>
               <View style={[styles.cardIcon, { backgroundColor: PEACH }]}>
@@ -207,7 +216,9 @@ export default function AdminScreen() {
               <View style={styles.cardContent}>
                 <Text style={styles.cardTitle}>Order Management</Text>
                 <Text style={styles.cardDescription}>
-                  View, process, and track all customer orders in real-time
+                  {stats.pendingOrders > 0 
+                    ? `${stats.pendingOrders} pending orders - scroll down to manage`
+                    : 'View, process, and track all customer orders in real-time'}
                 </Text>
               </View>
               <IconSymbol name="chevron.right" size={20} color={MUTED} />
@@ -266,48 +277,137 @@ export default function AdminScreen() {
           />
         ) : (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Recent Orders</Text>
-            {orders.slice(0, 5).map((order: any) => (
-              <View key={order.orderId} style={styles.orderCard}>
-                <View style={styles.orderHeader}>
-                  <Text style={styles.orderNumber}>Order #{order.orderId}</Text>
-                  <View
-                    style={[
-                      styles.statusBadge,
-                      { backgroundColor: getStatusColor(order.status) },
-                    ]}
-                  >
-                    <Text style={styles.statusText}>{order.status}</Text>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Recent Orders</Text>
+              {orders.length > 0 && (
+                <Text style={styles.orderCount}>
+                  {orders.length} total
+                </Text>
+              )}
+            </View>
+            
+            {orders.length === 0 ? (
+              <View style={styles.emptyState}>
+                <IconSymbol name="bag.badge.plus" size={48} color={MUTED} />
+                <Text style={styles.emptyStateTitle}>No Orders Yet</Text>
+                <Text style={styles.emptyStateText}>
+                  Orders will appear here when customers place them
+                </Text>
+              </View>
+            ) : (
+              <>
+                {orders.slice(0, 10).map((order: any) => (
+                  <View key={order.orderId} style={styles.orderCard}>
+                    <View style={styles.orderHeader}>
+                      <View style={styles.orderHeaderLeft}>
+                        <Text style={styles.orderNumber}>Order #{order.orderId}</Text>
+                        {order.userId && (
+                          <Text style={styles.orderUser}>User ID: {order.userId}</Text>
+                        )}
+                      </View>
+                      <View
+                        style={[
+                          styles.statusBadge,
+                          { backgroundColor: getStatusColor(order.status) },
+                        ]}
+                      >
+                        <Text style={styles.statusText}>{order.status}</Text>
+                      </View>
+                    </View>
+                    
+                    <View style={styles.orderDetails}>
+                      <View style={styles.orderDetailRow}>
+                        <IconSymbol name="calendar" size={14} color={MUTED} />
+                        <Text style={styles.orderDate}>
+                          {new Date(order.orderDate).toLocaleString()}
+                        </Text>
+                      </View>
+                      
+                      <View style={styles.orderDetailRow}>
+                        <IconSymbol name="dollarsign.circle" size={14} color={PEACH} />
+                        <Text style={styles.orderTotal}>
+                          ${order.totalPrice?.toFixed(2) || '0.00'}
+                        </Text>
+                      </View>
+                    </View>
+
+                    {/* Order Actions Based on Status */}
+                    {order.status === "PENDING" && (
+                      <View style={styles.orderActions}>
+                        <Pressable
+                          style={[styles.orderBtn, { backgroundColor: "#4CAF50" }]}
+                          onPress={() =>
+                            handleUpdateStatus(order.orderId, "CONFIRMED")
+                          }
+                        >
+                          <IconSymbol name="checkmark" size={16} color="#fff" />
+                          <Text style={styles.orderBtnText}>Accept</Text>
+                        </Pressable>
+                        <Pressable
+                          style={[styles.orderBtn, { backgroundColor: "#f44336" }]}
+                          onPress={() =>
+                            handleUpdateStatus(order.orderId, "CANCELLED")
+                          }
+                        >
+                          <IconSymbol name="xmark" size={16} color="#fff" />
+                          <Text style={styles.orderBtnText}>Decline</Text>
+                        </Pressable>
+                      </View>
+                    )}
+
+                    {order.status === "CONFIRMED" && (
+                      <View style={styles.orderActions}>
+                        <Pressable
+                          style={[styles.orderBtn, { backgroundColor: "#42A5F5", flex: 1 }]}
+                          onPress={() =>
+                            handleUpdateStatus(order.orderId, "PREPARING")
+                          }
+                        >
+                          <IconSymbol name="flame" size={16} color="#fff" />
+                          <Text style={styles.orderBtnText}>Start Preparing</Text>
+                        </Pressable>
+                      </View>
+                    )}
+
+                    {order.status === "PREPARING" && (
+                      <View style={styles.orderActions}>
+                        <Pressable
+                          style={[styles.orderBtn, { backgroundColor: "#9CCC65", flex: 1 }]}
+                          onPress={() =>
+                            handleUpdateStatus(order.orderId, "READY")
+                          }
+                        >
+                          <IconSymbol name="checkmark.circle" size={16} color="#fff" />
+                          <Text style={styles.orderBtnText}>Mark as Ready</Text>
+                        </Pressable>
+                      </View>
+                    )}
+
+                    {order.status === "READY" && (
+                      <View style={styles.orderActions}>
+                        <Pressable
+                          style={[styles.orderBtn, { backgroundColor: "#26A69A", flex: 1 }]}
+                          onPress={() =>
+                            handleUpdateStatus(order.orderId, "DELIVERED")
+                          }
+                        >
+                          <IconSymbol name="shippingbox" size={16} color="#fff" />
+                          <Text style={styles.orderBtnText}>Mark as Delivered</Text>
+                        </Pressable>
+                      </View>
+                    )}
                   </View>
-                </View>
-                <Text style={styles.orderDate}>
-                  {new Date(order.orderDate).toLocaleString()}
-                </Text>
-                <Text style={styles.orderTotal}>
-                  ${order.totalPrice?.toFixed(2)}
-                </Text>
-                {order.status === "PENDING" && (
-                  <View style={styles.orderActions}>
-                    <Pressable
-                      style={[styles.orderBtn, { backgroundColor: "#4CAF50" }]}
-                      onPress={() =>
-                        handleUpdateStatus(order.orderId, "CONFIRMED")
-                      }
-                    >
-                      <Text style={styles.orderBtnText}>Accept</Text>
-                    </Pressable>
-                    <Pressable
-                      style={[styles.orderBtn, { backgroundColor: "#f44336" }]}
-                      onPress={() =>
-                        handleUpdateStatus(order.orderId, "CANCELLED")
-                      }
-                    >
-                      <Text style={styles.orderBtnText}>Decline</Text>
-                    </Pressable>
+                ))}
+                
+                {orders.length > 10 && (
+                  <View style={styles.showMoreContainer}>
+                    <Text style={styles.showMoreText}>
+                      Showing 10 of {orders.length} orders
+                    </Text>
                   </View>
                 )}
-              </View>
-            ))}
+              </>
+            )}
           </View>
         )}
 
@@ -483,27 +583,67 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: MUTED,
   },
+  sectionHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 8,
+  },
+  orderCount: {
+    fontSize: 14,
+    color: PEACH,
+    fontWeight: "600",
+  },
+  emptyState: {
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 40,
+    backgroundColor: PANEL,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: BORDER,
+    gap: 12,
+  },
+  emptyStateTitle: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: TEXT,
+  },
+  emptyStateText: {
+    fontSize: 14,
+    color: MUTED,
+    textAlign: "center",
+  },
   orderCard: {
     backgroundColor: PANEL,
     borderRadius: 12,
     padding: 16,
     borderWidth: 1,
     borderColor: BORDER,
-    gap: 8,
+    gap: 12,
   },
   orderHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
-    alignItems: "center",
+    alignItems: "flex-start",
+    gap: 12,
+  },
+  orderHeaderLeft: {
+    flex: 1,
+    gap: 4,
   },
   orderNumber: {
     fontSize: 16,
     fontWeight: "600",
     color: TEXT,
   },
+  orderUser: {
+    fontSize: 12,
+    color: MUTED,
+  },
   statusBadge: {
     paddingHorizontal: 12,
-    paddingVertical: 4,
+    paddingVertical: 6,
     borderRadius: 12,
   },
   statusText: {
@@ -511,29 +651,51 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: "#fff",
   },
+  orderDetails: {
+    gap: 8,
+  },
+  orderDetailRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
   orderDate: {
     fontSize: 14,
     color: MUTED,
   },
   orderTotal: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: "700",
     color: PEACH,
   },
   orderActions: {
     flexDirection: "row",
     gap: 12,
-    marginTop: 8,
+    marginTop: 4,
   },
   orderBtn: {
     flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
     paddingVertical: 10,
     borderRadius: 8,
-    alignItems: "center",
   },
   orderBtnText: {
     color: "#fff",
     fontWeight: "600",
+    fontSize: 14,
+  },
+  showMoreContainer: {
+    alignItems: "center",
+    padding: 16,
+    marginTop: 8,
+  },
+  showMoreText: {
+    fontSize: 14,
+    color: MUTED,
+    fontStyle: "italic",
   },
   backButton: {
     flexDirection: "row",

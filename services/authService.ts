@@ -3,6 +3,7 @@
  * Handles all API calls related to user authentication
  */
 
+import { Platform } from "react-native";
 import { API_BASE_URL } from "@/config/environment";
 
 export interface SignUpData {
@@ -62,8 +63,13 @@ export async function login(data: LoginData): Promise<AuthResponse> {
   console.log("🔐 Attempting login...");
   console.log("📡 API URL:", `${API_BASE_URL}/users/login`);
   console.log("📤 Login data:", { email: data.email, password: "***" });
+  console.log("📱 Platform:", Platform.OS);
+  console.log("🔒 Password length:", data.password?.length || 0);
 
   try {
+    const requestBody = JSON.stringify(data);
+    console.log("📤 Request body (sanitized):", JSON.stringify({ ...data, password: "***" }));
+
     const response = await fetchWithTimeout(
       `${API_BASE_URL}/users/login`,
       {
@@ -72,16 +78,17 @@ export async function login(data: LoginData): Promise<AuthResponse> {
           "Content-Type": "application/json",
           Accept: "application/json",
         },
-        body: JSON.stringify(data),
+        body: requestBody,
       },
       10000 // 10 second timeout
     );
 
     console.log("📥 Response status:", response.status);
+    console.log("📥 Response ok:", response.ok);
 
     if (response.ok) {
       const result = await response.json();
-      console.log("✅ Login successful:", result);
+      console.log("✅ Login successful - Full response:", JSON.stringify(result, null, 2));
 
       // Check if token is expired
       if (result.token && isTokenExpired(result.token)) {
@@ -101,6 +108,8 @@ export async function login(data: LoginData): Promise<AuthResponse> {
         token: result.token || "",
       };
 
+      console.log("✅ User object created:", JSON.stringify(user, null, 2));
+
       return {
         success: true,
         message: `Welcome back, ${user.firstName || user.email}!`,
@@ -108,7 +117,8 @@ export async function login(data: LoginData): Promise<AuthResponse> {
       };
     } else {
       const errorText = await response.text();
-      console.error("❌ Login failed:", response.status, errorText);
+      console.error("❌ Login failed - Status:", response.status);
+      console.error("❌ Login failed - Error text:", errorText);
 
       let errorMessage = "Invalid credentials";
       try {
@@ -119,6 +129,8 @@ export async function login(data: LoginData): Promise<AuthResponse> {
         errorMessage = errorText || errorMessage;
       }
 
+      console.error("❌ Final error message:", errorMessage);
+
       return {
         success: false,
         message: errorMessage,
@@ -126,6 +138,9 @@ export async function login(data: LoginData): Promise<AuthResponse> {
     }
   } catch (error: any) {
     console.error("❌ Network error during login:", error);
+    console.error("❌ Error name:", error.name);
+    console.error("❌ Error message:", error.message);
+    console.error("❌ Error stack:", error.stack);
 
     if (error.name === "AbortError") {
       return {
