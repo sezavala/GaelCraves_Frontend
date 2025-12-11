@@ -6,18 +6,53 @@
 import { API_BASE_URL } from "@/config/environment";
 import { getAuthToken } from "./authToken";
 
-export interface FoodItem {
+// Backend response interface
+interface FoodItemBackend {
   foodItemId: number;
   name: string;
-  description?: string;
+  description: string | null;
   price: number;
+  imageUrl?: string | null;
+  category?: string | null;
+  isAvailable?: boolean | null;
+  calories?: number | null;
+  protein?: number | null;
+  carbohydrates?: number | null;
+  fat?: number | null;
+}
+
+// Frontend interface (what we use in the app)
+export interface FoodItem {
+  foodItemId: number;
+  itemName: string;
+  description: string;
+  price: number;
+  imageUrl?: string;
+  category?: string;
+  available: boolean;
   calories?: number;
   protein?: number;
   carbohydrates?: number;
   fat?: number;
-  imageUrl?: string;
-  category?: string;
-  isAvailable: boolean;
+}
+
+/**
+ * Map backend food item to frontend format
+ */
+function mapFoodItem(item: FoodItemBackend): FoodItem {
+  return {
+    foodItemId: item.foodItemId,
+    itemName: item.name, // Backend uses 'name', we use 'itemName'
+    description: item.description || "Delicious meal",
+    price: item.price,
+    imageUrl: item.imageUrl || undefined,
+    category: item.category || "Specialty",
+    available: item.isAvailable ?? true, // Backend uses 'isAvailable', we use 'available'
+    calories: item.calories || undefined,
+    protein: item.protein || undefined,
+    carbohydrates: item.carbohydrates || undefined,
+    fat: item.fat || undefined,
+  };
 }
 
 export interface Menu {
@@ -64,6 +99,7 @@ export async function getMenus(): Promise<Menu[]> {
  */
 export async function getFoodItems(): Promise<FoodItem[]> {
   try {
+    console.log("🍽️ Fetching food items from:", `${API_BASE_URL}/food-items`);
     const token = await getAuthToken();
     const response = await fetch(`${API_BASE_URL}/food-items`, {
       method: "GET",
@@ -80,9 +116,16 @@ export async function getFoodItems(): Promise<FoodItem[]> {
       return [];
     }
 
-    return await response.json();
+    const backendItems: FoodItemBackend[] = await response.json();
+    console.log("✅ Fetched", backendItems.length, "food items from backend");
+    
+    // Map backend format to frontend format
+    const mappedItems = backendItems.map(mapFoodItem);
+    console.log("✅ Mapped food items:", mappedItems);
+    
+    return mappedItems;
   } catch (error) {
-    console.error("Error fetching food items:", error);
+    console.error("❌ Error fetching food items:", error);
     // Also degrade gracefully here
     return [];
   }

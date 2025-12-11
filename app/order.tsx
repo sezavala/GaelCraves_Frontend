@@ -1,7 +1,4 @@
 import * as React from "react";
-import { Elements } from '@stripe/react-stripe-js';
-import { loadStripe } from '@stripe/stripe-js';
-import { CardElement, useStripe, useElements } from '@stripe/react-stripe-js';
 import {
   SafeAreaView,
   ScrollView,
@@ -15,138 +12,62 @@ import {
   Modal,
   TextInput,
   ActivityIndicator,
+  TouchableOpacity,
 } from "react-native";
 import { Link, useRouter } from "expo-router";
 import { useAuth } from "@/auth/AuthContext";
 import Constants from 'expo-constants';
+import { IconSymbol } from "@/components/ui/icon-symbol";
+import { getFoodItems, FoodItem } from "@/services/menuService";
 
 const BG = "#0B1313";
 const PANEL = "#0E1717";
 const PEACH = "#E7C4A3";
 const TEXT = "rgba(255,255,255,0.92)";
 const MUTED = "rgba(255,255,255,0.72)";
-const STRIPE_PUBLISHABLE_KEY = Constants.expoConfig?.extra?.STRIPE_PUBLISHABLE_KEY || 'pk_test_51RuQcGD5NgT1fMvQG4A42qUssaRVNIqzCzJLkZQ1pHzu2r8ztJ6KUCwm7xcWxLvMsGgxSeKqxSiEbPz2yXmcRt5n00VdHdnaxP';
-const stripePromise = loadStripe(STRIPE_PUBLISHABLE_KEY);
-
-// Import menu service
-import { getFoodItems, FoodItem } from "@/services/menuService";
-
-function PaymentForm({ onPaymentSuccess, isProcessing, setIsProcessing, currentMeal, user, orderTime, specialNotes }) {
-  const stripe = useStripe();
-  const elements = useElements();
-
-  const handleStripePayment = async () => {
-    if (!stripe || !elements || !currentMeal || !user) {
-      Alert.alert("Error", "Missing payment information");
-      return;
-    }
-    setIsProcessing(true);
-    try {
-      // 1. Create PaymentIntent on backend
-      const API_BASE = Constants.expoConfig?.extra?.API_BASE || 'http://localhost:8080';
-      const intentRes = await fetch(`${API_BASE}/api/orders/create-payment-intent`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          userId: user.id,
-          mealTitle: currentMeal.name,
-          mealPrice: currentMeal.price.toFixed(2),
-          orderTime: orderTime || "ASAP",
-          specialNotes: specialNotes,
-        }),
-      });
-      const intentData = await intentRes.json();
-      if (!intentData.clientSecret) throw new Error('No client secret');
-
-      // 2. Confirm card payment
-      const cardElement = elements.getElement(CardElement);
-      const confirmRes = await stripe.confirmCardPayment(intentData.clientSecret, {
-        payment_method: {
-          card: cardElement,
-          billing_details: { name: user.name || 'Customer' },
-        },
-      });
-      if (confirmRes.error) {
-        Alert.alert("Error", confirmRes.error.message || "Payment failed");
-        setIsProcessing(false);
-        return;
-      }
-      if (confirmRes.paymentIntent && confirmRes.paymentIntent.status === 'succeeded') {
-        onPaymentSuccess();
-      } else {
-        Alert.alert("Error", "Payment not completed");
-      }
-      setIsProcessing(false);
-    } catch (err) {
-      Alert.alert("Error", err.message || "Payment failed");
-      setIsProcessing(false);
-    }
-  };
-
-  return (
-    <View style={{ width: '100%' }}>
-      <CardElement options={{ style: { base: { fontSize: '18px' } } }} />
-      <View style={styles.paymentButtons}>
-        <Pressable
-          style={[styles.paymentButton, styles.paymentButtonSecondary]}
-          onPress={() => setIsProcessing(false)}
-          disabled={isProcessing}
-        >
-          <Text style={styles.paymentButtonText}>CANCEL</Text>
-        </Pressable>
-        <Pressable
-          style={[
-            styles.paymentButton,
-            styles.paymentButtonPrimary,
-            isProcessing && styles.paymentButtonDisabled,
-          ]}
-          onPress={handleStripePayment}
-          disabled={isProcessing}
-        >
-          {isProcessing ? (
-            <ActivityIndicator color="#FFF" />
-          ) : (
-            <Text style={styles.paymentButtonText}>PAY NOW</Text>
-          )}
-        </Pressable>
-      </View>
-    </View>
-  );
-}
 
 export default function ExploreScreen() {
   const { width } = useWindowDimensions();
   const isWide = width >= 1100;
   const isTablet = width >= 700 && width < 1100;
   const isMobile = width < 600;
-  const { user, logout, isHydrated } = useAuth();
+  const { user, logout } = useAuth();
   const router = useRouter();
 
-  const [selectedMeal, setSelectedMeal] = React.useState<string | null>(null);
+  const [selectedMeal, setSelectedMeal] = React.useState<number | null>(null);
   const [orderTime, setOrderTime] = React.useState("");
   const [specialNotes, setSpecialNotes] = React.useState("");
   const [showPayment, setShowPayment] = React.useState(false);
   const [showConfirmation, setShowConfirmation] = React.useState(false);
   const [isProcessing, setIsProcessing] = React.useState(false);
+  const [menuOpen, setMenuOpen] = React.useState(false);
   const [menuItems, setMenuItems] = React.useState<FoodItem[]>([]);
-  const [loadingMenu, setLoadingMenu] = React.useState(true);
+  const [isLoadingMenu, setIsLoadingMenu] = React.useState(true);
 
-  // Fetch menu items from API
+  // Payment form fields
+  const [cardNumber, setCardNumber] = React.useState("");
+  const [cardExpiry, setCardExpiry] = React.useState("");
+  const [cardCvc, setCardCvc] = React.useState("");
+  const [cardholderName, setCardholderName] = React.useState("");
+
+  // Load menu items from database
   React.useEffect(() => {
-    const fetchMenuItems = async () => {
+    const loadMenu = async () => {
+      console.log('🍽️ Loading menu items from database...');
+      setIsLoadingMenu(true);
       try {
-        setLoadingMenu(true);
         const items = await getFoodItems();
-        // Filter only available items and sort by category
-        const availableItems = items.filter(item => item.isAvailable);
-        setMenuItems(availableItems);
+        console.log('✅ Menu items loaded:', items.length, 'items');
+        setMenuItems(items);
       } catch (error) {
-        console.error("Error fetching menu items:", error);
+        console.error('❌ Failed to load menu items:', error);
+        Alert.alert('Error', 'Failed to load menu. Please try again.');
       } finally {
-        setLoadingMenu(false);
+        setIsLoadingMenu(false);
       }
     };
-    fetchMenuItems();
+
+    loadMenu();
   }, []);
 
   const handleLogout = async () => {
@@ -159,10 +80,74 @@ export default function ExploreScreen() {
     }
   };
 
-  const handleStartOrder = (mealId: string) => {
+  const handleNavigate = (path: any) => {
+    setMenuOpen(false);
+    router.push(path);
+  };
+
+  const handleStartOrder = (mealId: number) => {
+    console.log('🛒 Starting order for meal ID:', mealId);
+    console.log('👤 Current user:', user);
+    
+    // Check if user is logged in
+    if (!user) {
+      Alert.alert(
+        "Login Required",
+        "Please login to place an order",
+        [
+          { text: "Cancel", style: "cancel" },
+          { text: "Login", onPress: () => router.push("/login") }
+        ]
+      );
+      return;
+    }
+    
     setSelectedMeal(mealId);
     setOrderTime("");
     setSpecialNotes("");
+    // Reset payment fields
+    setCardNumber("");
+    setCardExpiry("");
+    setCardCvc("");
+    setCardholderName("");
+  };
+
+  const formatCardNumber = (text: string) => {
+    // Remove all non-digits
+    const cleaned = text.replace(/\D/g, '');
+    // Add space every 4 digits
+    const formatted = cleaned.match(/.{1,4}/g)?.join(' ') || cleaned;
+    return formatted.substring(0, 19); // Max 16 digits + 3 spaces
+  };
+
+  const formatExpiry = (text: string) => {
+    // Remove all non-digits
+    const cleaned = text.replace(/\D/g, '');
+    // Add slash after 2 digits
+    if (cleaned.length >= 2) {
+      return cleaned.substring(0, 2) + '/' + cleaned.substring(2, 4);
+    }
+    return cleaned;
+  };
+
+  const validatePaymentForm = (): boolean => {
+    if (!cardholderName.trim()) {
+      Alert.alert("Error", "Please enter cardholder name");
+      return false;
+    }
+    if (cardNumber.replace(/\s/g, '').length !== 16) {
+      Alert.alert("Error", "Please enter a valid 16-digit card number");
+      return false;
+    }
+    if (cardExpiry.length !== 5) {
+      Alert.alert("Error", "Please enter expiry in MM/YY format");
+      return false;
+    }
+    if (cardCvc.length < 3) {
+      Alert.alert("Error", "Please enter a valid CVC");
+      return false;
+    }
+    return true;
   };
 
   const handleCloseModal = () => {
@@ -172,19 +157,65 @@ export default function ExploreScreen() {
   };
 
   const handleConfirmOrder = () => {
+    if (!user) {
+      Alert.alert("Error", "Please login to continue");
+      router.push("/login");
+      return;
+    }
     setShowPayment(true);
   };
 
   const handlePayment = async () => {
-    if (!currentMeal || !user) {
-      Alert.alert("Error", "Missing meal or user information");
+    // Get current meal from menuItems
+    const currentMeal = menuItems.find((item) => item.foodItemId === selectedMeal);
+    
+    console.log('💳 handlePayment called');
+    console.log('🍽️ Current meal:', currentMeal);
+    console.log('👤 User:', user);
+    
+    if (!currentMeal) {
+      Alert.alert("Error", "Meal information not found");
+      return;
+    }
+    
+    if (!user) {
+      Alert.alert("Error", "Please login to complete payment");
+      router.push("/login");
+      return;
+    }
+
+    if (!validatePaymentForm()) {
       return;
     }
 
     setIsProcessing(true);
     try {
-      // Send order to backend with payment info
-      const API_BASE = Constants.expoConfig?.extra?.API_BASE || 'http://localhost:8080';
+      const API_BASE = Constants.expoConfig?.extra?.API_BASE || 'https://gaelcraves-backend-256f85b120e2.herokuapp.com';
+      
+      console.log('💳 Processing payment for:', currentMeal.itemName);
+      console.log('💰 Amount:', currentMeal.price);
+      
+      // Create payment intent
+      const paymentIntentResponse = await fetch(`${API_BASE}/api/orders/create-payment-intent`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          mealPrice: currentMeal.price.toString(),
+          mealTitle: currentMeal.itemName,
+        }),
+      });
+
+      const paymentIntentData = await paymentIntentResponse.json();
+      
+      if (!paymentIntentResponse.ok) {
+        throw new Error(paymentIntentData.error || 'Failed to create payment intent');
+      }
+
+      console.log('✅ Payment intent created');
+
+      // Process payment with card details
       const response = await fetch(`${API_BASE}/api/orders/payment`, {
         method: 'POST',
         headers: {
@@ -192,25 +223,31 @@ export default function ExploreScreen() {
         },
         body: JSON.stringify({
           userId: user.id,
-          mealTitle: currentMeal.title,
-          mealPrice: currentMeal.price,
+          mealTitle: currentMeal.itemName,
+          mealPrice: currentMeal.price.toString(),
           orderTime: orderTime || "ASAP",
           specialNotes: specialNotes,
-          paymentToken: "test_token_" + Date.now(), // In production, use Stripe's createPaymentMethod
+          paymentToken: paymentIntentData.clientSecret,
+          cardNumber: cardNumber.replace(/\s/g, ''),
+          cardExpiry: cardExpiry,
+          cardCvc: cardCvc,
+          cardholderName: cardholderName,
         }),
       });
 
       const result = await response.json();
       
       if (result.success) {
+        console.log('✅ Payment successful');
         setShowPayment(false);
         setShowConfirmation(true);
       } else {
         Alert.alert("Error", result.error || "Payment failed");
       }
-      setIsProcessing(false);
-    } catch (error) {
-      Alert.alert("Error", "Payment failed. Please try again.");
+    } catch (error: any) {
+      console.error('❌ Payment error:', error);
+      Alert.alert("Error", error.message || "Payment failed. Please try again.");
+    } finally {
       setIsProcessing(false);
     }
   };
@@ -219,25 +256,31 @@ export default function ExploreScreen() {
     handleCloseModal();
   };
 
-  const currentMeal = menuItems.find((item) => item.foodItemId.toString() === selectedMeal);
+  const currentMeal = menuItems.find((item) => item.foodItemId === selectedMeal);
 
   const tileBasis = isWide ? "48%" : isTablet ? "47%" : "100%";
 
   return (
     <SafeAreaView style={styles.safe}>
-      <ScrollView
-        contentContainerStyle={[
-          styles.container,
-          isMobile && styles.containerMobile,
-        ]}
-      >
-        {/* NAVBAR */}
-        <View style={styles.nav}>
-          <View style={styles.brandRow}>
-            <View style={styles.logoFlame} />
-            <Text style={styles.brand}>GAEL&apos;S CRAVES</Text>
-          </View>
+      {/* NAVBAR - Outside ScrollView for better touch handling */}
+      <View style={styles.nav}>
+        <View style={styles.brandRow}>
+          <View style={styles.logoFlame} />
+          <Text style={styles.brand}>GAEL&apos;S CRAVES</Text>
+        </View>
 
+        {isMobile ? (
+          <TouchableOpacity
+            activeOpacity={0.7}
+            onPress={() => {
+              console.log('🍔 Order Hamburger clicked!');
+              setMenuOpen(true);
+            }}
+            style={styles.menuButton}
+          >
+            <IconSymbol name="line.3.horizontal" size={32} color={TEXT} />
+          </TouchableOpacity>
+        ) : (
           <View style={[styles.navRight, isMobile && styles.navRightMobile]}>
             <Link href="/" asChild>
               <Pressable>
@@ -254,14 +297,6 @@ export default function ExploreScreen() {
                 </Text>
               </Pressable>
             </Link>
-
-            {/* <Link href="/basket" asChild>
-              <Pressable>
-                <Text style={[styles.navLink, isMobile && styles.navLinkMobile]}>
-                  Basket
-                </Text>
-              </Pressable>
-            </Link> */}
 
             <Link href="/contact" asChild>
               <Pressable>
@@ -288,7 +323,92 @@ export default function ExploreScreen() {
               </Link>
             )}
           </View>
-        </View>
+        )}
+      </View>
+
+      <ScrollView
+        contentContainerStyle={[
+          styles.container,
+          isMobile && styles.containerMobile,
+        ]}
+      >
+        {/* Mobile Menu Modal */}
+        {isMobile && (
+          <Modal
+            visible={menuOpen}
+            transparent
+            animationType="slide"
+            onRequestClose={() => {
+              console.log('Order modal close requested');
+              setMenuOpen(false);
+            }}
+            statusBarTranslucent
+          >
+            <TouchableOpacity 
+              style={styles.menuModalOverlay} 
+              activeOpacity={1}
+              onPress={() => {
+                console.log('🚪 Order backdrop pressed');
+                setMenuOpen(false);
+              }}
+            >
+              <TouchableOpacity 
+                activeOpacity={1}
+                onPress={(e) => e.stopPropagation()}
+                style={styles.menuDrawer}
+              >
+                <View style={styles.menuHeader}>
+                  <Text style={styles.menuTitle}>Menu</Text>
+                  <TouchableOpacity onPress={() => setMenuOpen(false)}>
+                    <IconSymbol name="xmark" size={24} color={TEXT} />
+                  </TouchableOpacity>
+                </View>
+
+                <View style={styles.menuItems}>
+                  <TouchableOpacity style={styles.menuItem} onPress={() => handleNavigate("/(tabs)")}>
+                    <IconSymbol name="house.fill" size={20} color={PEACH} />
+                    <Text style={styles.menuItemText}>Home</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity style={styles.menuItem} onPress={() => handleNavigate("/about")}>
+                    <IconSymbol name="info.circle.fill" size={20} color={PEACH} />
+                    <Text style={styles.menuItemText}>About</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity style={[styles.menuItem, styles.activeMenuItem]} onPress={() => handleNavigate("/order")}>
+                    <IconSymbol name="book.fill" size={20} color={PEACH} />
+                    <Text style={styles.menuItemText}>Menu</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity style={styles.menuItem} onPress={() => handleNavigate("/contact")}>
+                    <IconSymbol name="envelope.fill" size={20} color={PEACH} />
+                    <Text style={styles.menuItemText}>Contact</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity style={styles.menuItem} onPress={() => handleNavigate("/(tabs)/faq")}>
+                    <IconSymbol name="questionmark.circle.fill" size={20} color={PEACH} />
+                    <Text style={styles.menuItemText}>FAQ</Text>
+                  </TouchableOpacity>
+
+                  {user ? (
+                    <TouchableOpacity style={[styles.menuItem, styles.logoutMenuItem]} onPress={() => {
+                      setMenuOpen(false);
+                      handleLogout();
+                    }}>
+                      <IconSymbol name="arrow.right.square.fill" size={20} color={PEACH} />
+                      <Text style={styles.menuItemText}>Logout</Text>
+                    </TouchableOpacity>
+                  ) : (
+                    <TouchableOpacity style={[styles.menuItem, styles.loginMenuItem]} onPress={() => handleNavigate("/login")}>
+                      <IconSymbol name="person.fill" size={20} color={PEACH} />
+                      <Text style={styles.menuItemText}>Login</Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
+              </TouchableOpacity>
+            </TouchableOpacity>
+          </Modal>
+        )}
 
         {/* HEADER TEXT */}
         <View style={styles.headerBlock}>
@@ -303,14 +423,15 @@ export default function ExploreScreen() {
 
         {/* GRID OF MENU CARDS */}
         <View style={styles.gridWrapper}>
-          {loadingMenu ? (
-            <View style={{ alignItems: 'center', padding: 40 }}>
+          {isLoadingMenu ? (
+            <View style={styles.loadingContainer}>
               <ActivityIndicator size="large" color={PEACH} />
-              <Text style={{ color: MUTED, marginTop: 16 }}>Loading menu...</Text>
+              <Text style={styles.loadingText}>Loading menu...</Text>
             </View>
           ) : menuItems.length === 0 ? (
-            <View style={{ alignItems: 'center', padding: 40 }}>
-              <Text style={{ color: MUTED, fontSize: 18 }}>No menu items available</Text>
+            <View style={styles.emptyContainer}>
+              <Text style={styles.emptyText}>No menu items available</Text>
+              <Text style={styles.emptySubtext}>Please check back later</Text>
             </View>
           ) : (
             menuItems.map((item) => (
@@ -320,33 +441,34 @@ export default function ExploreScreen() {
               >
                 {/* Placeholder for future food image */}
                 <View style={styles.cardImagePlaceholder}>
-                  {item.imageUrl ? (
-                    <Text style={styles.cardImageText}>Image</Text>
-                  ) : (
-                    <Text style={styles.cardImageText}>Food Image</Text>
-                  )}
+                  <Text style={styles.cardImageText}>
+                    {item.imageUrl ? "🍽️" : "Food Image"}
+                  </Text>
                 </View>
 
                 <View style={styles.cardBody}>
-                  <Text style={styles.cardTitle}>{item.name}</Text>
-                  {item.description && (
-                    <Text style={styles.cardDescription}>{item.description}</Text>
+                  <Text style={styles.cardTitle}>{item.itemName}</Text>
+                  <Text style={styles.cardSubtitle}>{item.description}</Text>
+                  
+                  {(item.calories || item.protein) && (
+                    <Text style={styles.cardNutrition}>
+                      {item.calories ? `${item.calories} cal` : ''}{item.calories && item.protein ? ' • ' : ''}{item.protein ? `${item.protein}g protein` : ''}
+                    </Text>
                   )}
-                  <View style={styles.cardNutrition}>
-                    {item.calories && (
-                      <Text style={styles.cardNutritionText}>{item.calories} cal</Text>
-                    )}
-                    {item.protein && (
-                      <Text style={styles.cardNutritionText}>{item.protein}g protein</Text>
-                    )}
-                  </View>
+                  
                   <Text style={styles.cardPrice}>${item.price.toFixed(2)}</Text>
 
                   <Pressable
-                    style={styles.cardButton}
-                    onPress={() => handleStartOrder(item.foodItemId.toString())}
+                    style={[
+                      styles.cardButton,
+                      !item.available && styles.cardButtonDisabled
+                    ]}
+                    onPress={() => handleStartOrder(item.foodItemId)}
+                    disabled={!item.available}
                   >
-                    <Text style={styles.cardButtonText}>START ORDER</Text>
+                    <Text style={styles.cardButtonText}>
+                      {item.available ? "START ORDER" : "UNAVAILABLE"}
+                    </Text>
                   </Pressable>
                 </View>
               </View>
@@ -372,29 +494,26 @@ export default function ExploreScreen() {
         >
           <View style={styles.modalOverlay}>
             <View style={styles.modalContent}>
-              <Text style={styles.modalTitle}>{currentMeal?.name}</Text>
+              <Text style={styles.modalTitle}>{currentMeal?.itemName}</Text>
               
               <View style={styles.modalSection}>
                 <Text style={styles.modalLabel}>Price</Text>
                 <Text style={styles.modalValue}>${currentMeal?.price.toFixed(2)}</Text>
               </View>
 
-              <View style={styles.modalSection}>
-                <Text style={styles.modalLabel}>Nutrition</Text>
-                <Text style={styles.modalValue}>
-                  {currentMeal?.calories && `${currentMeal.calories} cal`}
-                  {currentMeal?.protein && ` • ${currentMeal.protein}g protein`}
-                  {currentMeal?.carbohydrates && ` • ${currentMeal.carbohydrates}g carbs`}
-                  {currentMeal?.fat && ` • ${currentMeal.fat}g fat`}
-                </Text>
-              </View>
-
-              {currentMeal?.description && (
+              {(currentMeal?.calories || currentMeal?.protein) && (
                 <View style={styles.modalSection}>
-                  <Text style={styles.modalLabel}>What&apos;s Included</Text>
-                  <Text style={styles.modalValue}>{currentMeal.description}</Text>
+                  <Text style={styles.modalLabel}>Nutrition</Text>
+                  <Text style={styles.modalValue}>
+                    {currentMeal?.calories ? `${currentMeal.calories} cal` : ''}{currentMeal?.calories && currentMeal?.protein ? ' • ' : ''}{currentMeal?.protein ? `${currentMeal.protein}g protein` : ''}
+                  </Text>
                 </View>
               )}
+
+              <View style={styles.modalSection}>
+                <Text style={styles.modalLabel}>What's Included</Text>
+                <Text style={styles.modalValue}>{currentMeal?.description}</Text>
+              </View>
 
               <View style={styles.modalSection}>
                 <Text style={styles.modalLabel}>Preferred Time</Text>
@@ -452,7 +571,7 @@ export default function ExploreScreen() {
               
               <View style={styles.confirmationSection}>
                 <Text style={styles.confirmationLabel}>Meal</Text>
-                <Text style={styles.confirmationValue}>{currentMeal?.name}</Text>
+                <Text style={styles.confirmationValue}>{currentMeal?.itemName}</Text>
               </View>
 
               <View style={styles.confirmationSection}>
@@ -504,27 +623,108 @@ export default function ExploreScreen() {
               <View style={styles.paymentSummary}>
                 <View style={styles.paymentSummaryRow}>
                   <Text style={styles.paymentSummaryLabel}>Meal</Text>
-                  <Text style={styles.paymentSummaryValue}>{currentMeal?.name}</Text>
+                  <Text style={styles.paymentSummaryValue}>{currentMeal?.itemName}</Text>
                 </View>
                 <View style={styles.paymentSummaryRow}>
                   <Text style={styles.paymentSummaryLabel}>Amount</Text>
                   <Text style={styles.paymentSummaryValue}>${currentMeal?.price.toFixed(2)}</Text>
                 </View>
               </View>
-              <Elements stripe={stripePromise}>
-                <PaymentForm
-                  onPaymentSuccess={() => {
-                    setShowPayment(false);
-                    setShowConfirmation(true);
-                  }}
-                  isProcessing={isProcessing}
-                  setIsProcessing={setIsProcessing}
-                  currentMeal={currentMeal}
-                  user={user}
-                  orderTime={orderTime}
-                  specialNotes={specialNotes}
-                />
-              </Elements>
+              
+              {/* Stripe Card Input Form */}
+              <View style={styles.paymentForm}>
+                <Text style={styles.paymentFormTitle}>Card Details</Text>
+                
+                {/* Test Card Banner */}
+                <View style={styles.testCardBanner}>
+                  <Text style={styles.testCardTitle}>🧪 Test Mode</Text>
+                  <Text style={styles.testCardText}>Card: 4242 4242 4242 4242</Text>
+                  <Text style={styles.testCardText}>Expiry: Any future date</Text>
+                  <Text style={styles.testCardText}>CVC: Any 3 digits</Text>
+                </View>
+
+                {/* Cardholder Name */}
+                <View style={styles.paymentFieldGroup}>
+                  <Text style={styles.paymentFieldLabel}>Cardholder Name</Text>
+                  <TextInput
+                    style={styles.paymentInput}
+                    placeholder="John Doe"
+                    placeholderTextColor={MUTED}
+                    value={cardholderName}
+                    onChangeText={setCardholderName}
+                    autoCapitalize="words"
+                  />
+                </View>
+
+                {/* Card Number */}
+                <View style={styles.paymentFieldGroup}>
+                  <Text style={styles.paymentFieldLabel}>Card Number</Text>
+                  <TextInput
+                    style={styles.paymentInput}
+                    placeholder="4242 4242 4242 4242"
+                    placeholderTextColor={MUTED}
+                    value={cardNumber}
+                    onChangeText={(text) => setCardNumber(formatCardNumber(text))}
+                    keyboardType="numeric"
+                    maxLength={19}
+                  />
+                </View>
+
+                {/* Expiry and CVC */}
+                <View style={styles.paymentFieldRow}>
+                  <View style={[styles.paymentFieldGroup, { flex: 1 }]}>
+                    <Text style={styles.paymentFieldLabel}>Expiry Date</Text>
+                    <TextInput
+                      style={styles.paymentInput}
+                      placeholder="MM/YY"
+                      placeholderTextColor={MUTED}
+                      value={cardExpiry}
+                      onChangeText={(text) => setCardExpiry(formatExpiry(text))}
+                      keyboardType="numeric"
+                      maxLength={5}
+                    />
+                  </View>
+
+                  <View style={[styles.paymentFieldGroup, { flex: 1 }]}>
+                    <Text style={styles.paymentFieldLabel}>CVC</Text>
+                    <TextInput
+                      style={styles.paymentInput}
+                      placeholder="123"
+                      placeholderTextColor={MUTED}
+                      value={cardCvc}
+                      onChangeText={(text) => setCardCvc(text.replace(/\D/g, '').substring(0, 4))}
+                      keyboardType="numeric"
+                      maxLength={4}
+                      secureTextEntry
+                    />
+                  </View>
+                </View>
+                
+                <View style={styles.paymentButtons}>
+                  <Pressable
+                    style={[styles.paymentButton, styles.paymentButtonSecondary]}
+                    onPress={() => setShowPayment(false)}
+                    disabled={isProcessing}
+                  >
+                    <Text style={styles.paymentButtonText}>CANCEL</Text>
+                  </Pressable>
+                  <Pressable
+                    style={[
+                      styles.paymentButton,
+                      styles.paymentButtonPrimary,
+                      isProcessing && styles.paymentButtonDisabled,
+                    ]}
+                    onPress={handlePayment}
+                    disabled={isProcessing}
+                  >
+                    {isProcessing ? (
+                      <ActivityIndicator color="#1b1b1b" />
+                    ) : (
+                      <Text style={[styles.paymentButtonText, styles.paymentButtonTextPrimary]}>PAY ${currentMeal?.price.toFixed(2)}</Text>
+                    )}
+                  </Pressable>
+                </View>
+              </View>
             </View>
           </View>
         </Modal>
@@ -544,6 +744,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     paddingVertical: 16,
+    paddingHorizontal: 20,
+    backgroundColor: BG,
+    zIndex: 1000,
+    elevation: 1000,
   },
   brandRow: { flexDirection: "row", alignItems: "center", gap: 10 },
   logoFlame: {
@@ -572,6 +776,71 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   loginText: { color: "#1b1b1b", fontWeight: "800" },
+  menuButton: {
+    padding: 16,
+    marginRight: -12,
+    zIndex: 1000,
+    elevation: 1000,
+  },
+  menuModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    justifyContent: 'flex-end',
+  },
+  menuDrawer: {
+    backgroundColor: PANEL,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    paddingBottom: Platform.OS === 'android' ? 60 : 40,
+    maxHeight: '85%',
+    elevation: 20,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+  },
+  menuHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255,255,255,0.08)',
+  },
+  menuTitle: {
+    color: TEXT,
+    fontSize: 20,
+    fontWeight: "800",
+  },
+  menuItems: {
+    padding: 16,
+  },
+  menuItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    gap: 12,
+    borderRadius: 12,
+    marginBottom: 8,
+  },
+  menuItemText: {
+    color: TEXT,
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  activeMenuItem: {
+    backgroundColor: PEACH + '20',
+  },
+  logoutMenuItem: {
+    marginTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255,255,255,0.08)',
+    paddingTop: 24,
+  },
+  loginMenuItem: {
+    marginTop: 16,
+    backgroundColor: PEACH + '20',
+  },
 
   // HEADER
   headerBlock: {
@@ -648,6 +917,12 @@ const styles = StyleSheet.create({
     fontSize: 13,
     marginBottom: 10,
   },
+  cardNutrition: {
+    color: PEACH,
+    fontSize: 13,
+    fontWeight: "600",
+    marginBottom: 8,
+  },
   cardButton: {
     borderWidth: 1,
     borderColor: PEACH,
@@ -662,24 +937,6 @@ const styles = StyleSheet.create({
     fontWeight: "800",
     fontSize: 12,
     letterSpacing: 0.5,
-  },
-  cardNutrition: {
-    flexDirection: "row",
-    gap: 12,
-    marginTop: 8,
-    marginBottom: 4,
-  },
-  cardNutritionText: {
-    color: MUTED,
-    fontSize: 12,
-    fontWeight: "600",
-  },
-  cardPrice: {
-    color: PEACH,
-    fontSize: 20,
-    fontWeight: "800",
-    marginTop: 8,
-    marginBottom: 8,
   },
 
   // FOOTER
@@ -883,21 +1140,82 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     marginBottom: 8,
   },
+  paymentForm: {
+    width: "100%",
+  },
+  paymentFormTitle: {
+    color: TEXT,
+    fontSize: 18,
+    fontWeight: "700",
+    marginBottom: 8,
+  },
+  testCardBanner: {
+    backgroundColor: "rgba(231, 196, 163, 0.15)",
+    borderWidth: 1,
+    borderColor: PEACH,
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 20,
+    marginTop: 8,
+  },
+  testCardTitle: {
+    color: PEACH,
+    fontSize: 14,
+    fontWeight: "700",
+    marginBottom: 8,
+    textAlign: "center",
+  },
+  testCardText: {
+    color: TEXT,
+    fontSize: 13,
+    marginBottom: 4,
+    textAlign: "center",
+    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+  },
   paymentNote: {
     color: MUTED,
-    fontSize: 12,
-    fontStyle: "italic",
-    marginBottom: 12,
+    fontSize: 13,
+    marginBottom: 20,
+    backgroundColor: "rgba(231, 196, 163, 0.1)",
+    padding: 12,
+    borderRadius: 8,
+    textAlign: "center",
+  },
+  paymentFieldGroup: {
+    marginBottom: 16,
+  },
+  paymentFieldRow: {
+    flexDirection: "row",
+    gap: 12,
+    marginBottom: 16,
+  },
+  paymentFieldLabel: {
+    color: TEXT,
+    fontSize: 13,
+    fontWeight: "600",
+    marginBottom: 8,
+  },
+  paymentInput: {
+    backgroundColor: "rgba(255,255,255,0.05)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.12)",
+    borderRadius: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    color: TEXT,
+    fontSize: 16,
   },
   paymentButtons: {
     flexDirection: "row",
     gap: 12,
+    marginTop: 8,
   },
   paymentButton: {
     flex: 1,
-    paddingVertical: 12,
+    paddingVertical: 14,
     borderRadius: 8,
     alignItems: "center",
+    justifyContent: "center",
   },
   paymentButtonPrimary: {
     backgroundColor: PEACH,
@@ -908,12 +1226,54 @@ const styles = StyleSheet.create({
     borderColor: "rgba(255,255,255,0.12)",
   },
   paymentButtonDisabled: {
-    opacity: 0.6,
+    opacity: 0.5,
   },
   paymentButtonText: {
-    color: "#1b1b1b",
-    fontWeight: "800",
+    color: TEXT,
     fontSize: 14,
+    fontWeight: "700",
+  },
+  paymentButtonTextPrimary: {
+    color: "#1b1b1b",
+  },
+  // Loading and Empty States
+  loadingContainer: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 40,
+  },
+  loadingText: {
+    color: TEXT,
+    fontSize: 16,
+    marginTop: 12,
+    fontWeight: "600",
+  },
+  emptyContainer: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 40,
+  },
+  emptyText: {
+    color: TEXT,
+    fontSize: 20,
+    fontWeight: "700",
+    marginBottom: 8,
+  },
+  emptySubtext: {
+    color: MUTED,
+    fontSize: 14,
+  },
+  cardPrice: {
+    color: PEACH,
+    fontSize: 20,
+    fontWeight: "800",
+    marginBottom: 12,
+  },
+  cardButtonDisabled: {
+    backgroundColor: "rgba(255,255,255,0.08)",
+    opacity: 0.5,
   },
 });
 

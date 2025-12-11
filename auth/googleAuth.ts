@@ -33,23 +33,41 @@ export const NON_PROXY_REDIRECT_URI = makeRedirectUri({
 export function useGoogleLogin() {
   const { setUser } = useAuth();
   const router = useRouter();
-  const useProxy = Platform.OS !== "web";
 
-  // For web on Heroku, redirect back to login page where we can parse the hash
-  const redirectUri =
-    Platform.OS === "web"
-      ? "https://gaelcraves-frontend-7a6e5c03f69a.herokuapp.com/login"
-      : makeRedirectUri({ useProxy } as any);
+  // Platform-specific redirect URIs
+  let redirectUri: string;
+  let useProxy = false;
+  
+  if (Platform.OS === "web") {
+    // Web: redirect to Heroku login page
+    redirectUri = "https://gaelcraves-frontend-7a6e5c03f69a.herokuapp.com/login";
+    useProxy = false;
+  } else {
+    // Android/iOS: Use Expo's auth proxy (pre-approved by Google)
+    // This avoids needing to register custom schemes in Google Console
+    redirectUri = makeRedirectUri({
+      useProxy: true
+    } as any);
+    useProxy = true;
+  }
 
-  console.log(
-    "[googleAuth] chosen redirectUri=",
-    redirectUri,
-    "useProxy=",
-    useProxy
-  );
+  console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+  console.log("🔐 GOOGLE OAUTH CONFIGURATION");
+  console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+  console.log("📱 Platform:", Platform.OS);
+  console.log("🔗 Redirect URI:", redirectUri);
+  console.log("🌐 Use Proxy:", useProxy);
+  console.log("🔑 Web Client ID:", GOOGLE_WEB_CLIENT_ID ? "✅ Set" : "❌ Missing");
+  console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+  console.log("⚠️  ADD THIS URI TO YOUR WEB CLIENT (NOT ANDROID):");
+  console.log("   ", redirectUri);
+  console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
 
   const [request, response, promptAsync] = Google.useAuthRequest({
+    // Web client ID is required for authentication
     webClientId: GOOGLE_WEB_CLIENT_ID,
+    // Android client ID is required on Android platform
+    // But we use the web client's redirect URIs through Expo proxy
     androidClientId: GOOGLE_ANDROID_CLIENT_ID,
     iosClientId: GOOGLE_IOS_CLIENT_ID,
     redirectUri,
