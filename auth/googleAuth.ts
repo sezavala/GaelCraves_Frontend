@@ -37,18 +37,27 @@ export function useGoogleLogin() {
   // Platform-specific redirect URIs
   let redirectUri: string;
   let useProxy = false;
-  
+  let responseType: string;
+
   if (Platform.OS === "web") {
     // Web: redirect to Heroku login page
-    redirectUri = "https://gaelcraves-frontend-7a6e5c03f69a.herokuapp.com/login";
+    redirectUri =
+      "https://gaelcraves-frontend-7a6e5c03f69a.herokuapp.com/login";
     useProxy = false;
+    responseType = "id_token";
+  } else if (Platform.OS === "android") {
+    // Android: Use Heroku redirect endpoint (publicly accessible HTTPS)
+    // The Heroku endpoint will handle the OAuth callback and redirect to the app
+    redirectUri = "https://gaelcraves-frontend-7a6e5c03f69a.herokuapp.com/oauth/callback";
+    useProxy = false;
+    responseType = "code"; // Use code flow for Android
   } else {
-    // Android/iOS: Use Expo's auth proxy (pre-approved by Google)
-    // This avoids needing to register custom schemes in Google Console
+    // iOS: Use authorization code flow
     redirectUri = makeRedirectUri({
-      useProxy: true
+      useProxy: true,
     } as any);
     useProxy = true;
+    responseType = "code";
   }
 
   console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
@@ -57,22 +66,26 @@ export function useGoogleLogin() {
   console.log("📱 Platform:", Platform.OS);
   console.log("🔗 Redirect URI:", redirectUri);
   console.log("🌐 Use Proxy:", useProxy);
-  console.log("🔑 Web Client ID:", GOOGLE_WEB_CLIENT_ID ? "✅ Set" : "❌ Missing");
-  console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
-  console.log("⚠️  ADD THIS URI TO YOUR WEB CLIENT (NOT ANDROID):");
-  console.log("   ", redirectUri);
+  console.log(
+    "🔑 Web Client ID:",
+    GOOGLE_WEB_CLIENT_ID ? "✅ Set" : "❌ Missing"
+  );
+  console.log(
+    "🔑 Android Client ID:",
+    GOOGLE_ANDROID_CLIENT_ID ? "✅ Set" : "❌ Missing"
+  );
+  console.log("📋 Response Type:", responseType);
   console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
 
   const [request, response, promptAsync] = Google.useAuthRequest({
-    // Web client ID is required for authentication
+    // IMPORTANT: For Android, we use WEB client ID because Android client doesn't support custom redirect URIs
+    // The androidClientId is only used for server-side verification
     webClientId: GOOGLE_WEB_CLIENT_ID,
-    // Android client ID is required on Android platform
-    // But we use the web client's redirect URIs through Expo proxy
     androidClientId: GOOGLE_ANDROID_CLIENT_ID,
     iosClientId: GOOGLE_IOS_CLIENT_ID,
     redirectUri,
-    responseType: "id_token" as any,
-    usePKCE: false,
+    responseType: responseType as any,
+    usePKCE: Platform.OS !== "web", // Enable PKCE for native platforms
     scopes: ["openid", "profile", "email"],
     extraParams: {
       access_type: "offline",
@@ -99,14 +112,22 @@ export function useGoogleLogin() {
     const params = authResponse.params as { code?: string; id_token?: string };
     const { code, id_token: idToken } = params;
 
-    console.log("[googleAuth] Got response - code:", !!code, "idToken:", !!idToken);
+    console.log(
+      "[googleAuth] Got response - code:",
+      !!code,
+      "idToken:",
+      !!idToken
+    );
 
     if (idToken) {
       await processIdToken(idToken);
     } else if (code) {
       await processAuthCode(code);
     } else {
-      console.warn("[googleAuth] No authorization code or id_token in response", params);
+      console.warn(
+        "[googleAuth] No authorization code or id_token in response",
+        params
+      );
     }
   };
 
@@ -114,7 +135,7 @@ export function useGoogleLogin() {
     try {
       const url = new URL(window.location.href);
       const params = new URLSearchParams(url.search);
-      
+
       // Google returns id_token in the hash fragment for implicit flow
       const hashParams = new URLSearchParams(
         url.hash.startsWith("#") ? url.hash.slice(1) : url.hash
@@ -122,8 +143,13 @@ export function useGoogleLogin() {
 
       const code = params.get("code");
       const idToken = params.get("id_token") || hashParams.get("id_token");
-      
-      console.log("[googleAuth] Checking URL - code:", !!code, "idToken:", !!idToken);
+
+      console.log(
+        "[googleAuth] Checking URL - code:",
+        !!code,
+        "idToken:",
+        !!idToken
+      );
       console.log("[googleAuth] Full hash:", url.hash);
       console.log("[googleAuth] Full search:", url.search);
 
@@ -146,13 +172,13 @@ export function useGoogleLogin() {
   const processIdToken = async (idToken: string) => {
     try {
       console.log("[googleAuth] Processing id_token");
-      
+
       // Decode JWT to extract user info
       const payload = idToken.split(".")[1];
       const decoded = JSON.parse(
         atob(payload.replace(/-/g, "+").replace(/_/g, "/"))
       );
-      
+
       const email = decoded.email || decoded.preferred_username || decoded.sub;
       const firstName = decoded.given_name || "";
       const lastName = decoded.family_name || "";
@@ -207,7 +233,9 @@ export function useGoogleLogin() {
         window.localStorage.setItem("@token", userData.token);
       }
 
-      console.log("[googleAuth] User authenticated successfully, navigating to home");
+      console.log(
+        "[googleAuth] User authenticated successfully, navigating to home"
+      );
       router.replace("/(tabs)");
     } catch (e) {
       console.error("[googleAuth] Error processing id_token:", e);
@@ -217,7 +245,7 @@ export function useGoogleLogin() {
   const processAuthCode = async (code: string) => {
     try {
       console.log("[googleAuth] Processing authorization code");
-      
+
       const resp = await fetch(`${API_BASE}/api/v1/auth/google`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -225,7 +253,10 @@ export function useGoogleLogin() {
       });
 
       if (!resp.ok) {
-        console.error("[googleAuth] Backend code exchange failed:", resp.status);
+        console.error(
+          "[googleAuth] Backend code exchange failed:",
+          resp.status
+        );
         return;
       }
 
@@ -256,7 +287,9 @@ export function useGoogleLogin() {
         window.localStorage.setItem("@token", userData.token);
       }
 
-      console.log("[googleAuth] User authenticated successfully, navigating to home");
+      console.log(
+        "[googleAuth] User authenticated successfully, navigating to home"
+      );
       router.replace("/(tabs)");
     } catch (err) {
       console.error("[googleAuth] Error processing auth code:", err);
@@ -269,7 +302,7 @@ export function useGoogleLogin() {
     try {
       const url = new URL(window.location.href);
       const params = new URLSearchParams(url.search);
-      
+
       // Remove OAuth parameters
       params.delete("code");
       params.delete("scope");
@@ -277,14 +310,14 @@ export function useGoogleLogin() {
       params.delete("prompt");
       params.delete("state");
       params.delete("id_token");
-      
+
       // Clear hash (where id_token is returned)
       const newSearch = params.toString();
       const newUrl =
         window.location.origin +
         window.location.pathname +
         (newSearch ? `?${newSearch}` : "");
-      
+
       window.history.replaceState({}, document.title, newUrl);
       console.log("[googleAuth] URL cleaned");
     } catch (e) {
