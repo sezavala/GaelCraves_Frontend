@@ -5,6 +5,7 @@
 
 import { Platform } from "react-native";
 import { API_BASE_URL } from "@/config/environment";
+import { loginWithGithubNative } from "@/auth/githubAuth";
 
 // Base backend URL without the /api suffix (for OAuth redirects, etc.)
 const BACKEND_BASE_URL = API_BASE_URL.replace(/\/api$/, "");
@@ -252,19 +253,15 @@ export async function loginWithGoogle(): Promise<AuthResponse> {
 
 export async function loginWithGithub(): Promise<AuthResponse> {
   // Web: redirect browser to Spring Boot GitHub OAuth entrypoint
-  if (typeof window !== "undefined") {
+  if (Platform.OS === "web" && typeof window !== "undefined") {
     window.location.href = `${BACKEND_BASE_URL}/oauth2/authorization/github`;
     return {
       success: true,
       message: "Redirecting to GitHub for login...",
     };
   }
-
-  // Native apps: GitHub OAuth is web-only for now
-  return {
-    success: false,
-    message: "GitHub OAuth login is currently available on web only.",
-  };
+  // Native apps: use Expo AuthSession-based flow
+  return loginWithGithubNative();
 }
 
 export async function logout(): Promise<void> {
