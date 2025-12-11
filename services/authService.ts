@@ -6,6 +6,9 @@
 import { Platform } from "react-native";
 import { API_BASE_URL } from "@/config/environment";
 
+// Base backend URL without the /api suffix (for OAuth redirects, etc.)
+const BACKEND_BASE_URL = API_BASE_URL.replace(/\/api$/, "");
+
 export interface SignUpData {
   email: string;
   password: string;
@@ -247,10 +250,20 @@ export async function loginWithGoogle(): Promise<AuthResponse> {
   };
 }
 
-export async function loginWithInstagram(): Promise<AuthResponse> {
+export async function loginWithGithub(): Promise<AuthResponse> {
+  // Web: redirect browser to Spring Boot GitHub OAuth entrypoint
+  if (typeof window !== "undefined") {
+    window.location.href = `${BACKEND_BASE_URL}/oauth2/authorization/github`;
+    return {
+      success: true,
+      message: "Redirecting to GitHub for login...",
+    };
+  }
+
+  // Native apps: GitHub OAuth is web-only for now
   return {
     success: false,
-    message: "Instagram OAuth integration coming soon!",
+    message: "GitHub OAuth login is currently available on web only.",
   };
 }
 

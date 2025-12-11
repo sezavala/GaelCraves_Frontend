@@ -50,3 +50,6 @@ android/keystores/debug.keystore
 
 expo-env.d.ts
 # @end expo-cli
+/android
+.expo/types/router.d.ts
+.DS_Store
