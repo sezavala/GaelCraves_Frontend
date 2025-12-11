@@ -48,7 +48,7 @@ export default function LoginScreen() {
     handleBlur,
     handleSubmit,
     handleGoogleLogin,
-    handleInstagramLogin,
+    handleGithubLogin,
     toggleMode,
   } = useAuth();
 
@@ -301,13 +301,13 @@ export default function LoginScreen() {
                   textStyle={styles.socialText}
                 />
 
-                {/* INSTAGRAM BUTTON */}
+                {/* GITHUB BUTTON (web-only OAuth via Spring Security) */}
                 <Pressable
                   style={styles.socialBtn}
-                  onPress={handleInstagramLogin}
+                  onPress={handleGithubLogin}
                 >
-                  <Text style={styles.socialIcon}>📷</Text>
-                  <Text style={styles.socialText}>Instagram</Text>
+                  <Text style={styles.socialIcon}>🐙</Text>
+                  <Text style={styles.socialText}>GitHub</Text>
                 </Pressable>
               </View>
 

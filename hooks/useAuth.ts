@@ -18,7 +18,7 @@ import {
   signUp,
   login,
   loginWithGoogle,
-  loginWithInstagram,
+  loginWithGithub,
 } from "@/services/authService";
 
 interface FormErrors {
@@ -273,12 +273,12 @@ export function useAuth() {
   };
 
   /**
-   * Handles Instagram OAuth login
+   * Handles GitHub OAuth login (web-only)
    */
-  const handleInstagramLogin = async () => {
+  const handleGithubLogin = async () => {
     setIsLoading(true);
     try {
-      const result = await loginWithInstagram();
+      const result = await loginWithGithub();
       Alert.alert(result.success ? "Success" : "Info", result.message);
     } finally {
       setIsLoading(false);
@@ -359,7 +359,7 @@ export function useAuth() {
     handleBlur,
     handleSubmit,
     handleGoogleLogin,
-    handleInstagramLogin,
+    handleGithubLogin,
     handleLogout,
     toggleMode,
     resetForm,

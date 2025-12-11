@@ -223,8 +223,8 @@ export default function ExploreScreen() {
         },
         body: JSON.stringify({
           userId: user.id,
-          mealTitle: currentMeal.itemName,
-          mealPrice: currentMeal.price.toString(),
+          mealTitle: currentMeal.title,
+          mealPrice: currentMeal.price,
           orderTime: orderTime || "ASAP",
           specialNotes: specialNotes,
           paymentToken: paymentIntentData.clientSecret,
